@@ -1,6 +1,6 @@
 import {
   $, $$, html, patch, badge, stateLabel, stateTone, percent, seconds, intervalLabel,
-  clock, ago, formatDate, formatFull, formatRange, tickRelative,
+  clock, ago, formatDay, formatFull, formatRange, formatTime, tickRelative,
   request, poller, prefs, dialogControls,
 } from './common.js';
 
@@ -9,6 +9,7 @@ const WINDOWS = ['24h', '7d', '30d'];
 const SORTS = ['severity', 'monitor', 'checked'];
 const WINDOW_LABEL = {'24h': '24 hours', '7d': '7 days', '30d': '30 days'};
 const AXIS = {'24h': ['24h ago', '12h ago', 'now'], '7d': ['7d ago', '3.5d ago', 'now'], '30d': ['30d ago', '15d ago', 'now']};
+const rate = tps => tps < 10 ? tps.toFixed(1) : String(Math.round(tps));
 const timeAxis = () => html`<div class="time-axis" aria-hidden="true">${AXIS[ui.window].map(label => html`<span>${label}</span>`)}</div>`;
 
 // Lower is worse. Sorting by severity puts problems first.
@@ -146,6 +147,7 @@ function renderHead() {
     <div class="c-monitor">${sortButton('monitor', 'Monitor')}</div>
     <div class="c-identity">${sortButton('severity', 'Identity')}</div>
     <div class="c-closest"><span class="head-label">Closest match</span></div>
+    <div class="c-speed" title="Latest check: time to first token and answer decode rate. Colored against checks of the same model and reasoning in this window."><span class="head-label">Speed</span></div>
     <div class="c-history" title="History · ${WINDOW_LABEL[ui.window]}">${timeAxis()}</div>
     <div class="c-checked">${sortButton('checked', 'Checked')}</div>`);
 }
@@ -195,6 +197,7 @@ function row(v) {
     </div>
     <div class="c-identity">${identityCell(v)}</div>
     <div class="c-closest">${closestCell(v)}</div>
+    <div class="c-speed">${speedCell(v)}</div>
     <div class="c-history">${bars(v)}</div>
     <div class="c-checked">
       ${done ? html`<span data-ago="${v.checkedAt}" title="${formatFull(v.checkedAt)}"></span>` : html`<span class="muted">never</span>`}
@@ -223,6 +226,17 @@ function closestCell(v) {
   const same = top.model === m.expected_model;
   return html`<div class="closest-line${same ? ' is-expected' : ''}"><span class="mono truncate" title="${top.model}${same ? ' (expected model)' : ''}">${top.model}</span><span class="num">${percent(top.weight)}</span></div>
     <div class="meter" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, top.weight * 100)).toFixed(1)}%"></i></div>`;
+}
+
+function speedCell(v) {
+  const s = v.m.speed;
+  if (s?.ttft_ms == null && s?.output_tps == null) return '';
+  const t = s.typical;
+  const title = `Median of the latest check’s probes. Typical for ${v.m.expected_model} at ${v.m.effort} reasoning: ${t.ttft_ms != null ? `${seconds(t.ttft_ms)} TTFT` : '—'} · ${t.output_tps != null ? `${rate(t.output_tps)} tok/s` : '—'} over ${s.checks} check${s.checks === 1 ? '' : 's'} in ${WINDOW_LABEL[ui.window]}.`;
+  return html`<div class="speed" title="${title}">
+    <div>${s.ttft_ms != null ? html`<span class="num speed-value tone-${s.ttft_tone}">${seconds(s.ttft_ms)}</span> <span class="muted">TTFT</span>` : ''}</div>
+    <div>${s.output_tps != null ? html`<span class="num speed-value tone-${s.tps_tone}">${rate(s.output_tps)}</span> <span class="muted">tok/s</span>` : ''}</div>
+  </div>`;
 }
 
 function bars(v) {
@@ -330,6 +344,7 @@ function showTip(button) {
     <dl class="tip-facts">
       <div><dt>Closest</dt><dd>${s.top ? html`<span class="mono">${s.top.model}</span> · ${percent(s.top.weight)}` : 'no fingerprint'}</dd></div>
       ${s.top && s.top.model !== v.m.expected_model ? html`<div><dt>${v.m.expected_model}</dt><dd>${percent(s.expected_weight)}</dd></div>` : ''}
+      ${s.ttft_ms != null ? html`<div><dt>Speed</dt><dd>${seconds(s.ttft_ms)} TTFT${s.output_tps != null ? ` · ${rate(s.output_tps)} tok/s` : ''}</dd></div>` : ''}
       ${s.valid_samples < s.planned_samples ? html`<div><dt>Valid samples</dt><dd>${s.valid_samples}/${s.planned_samples}</dd></div>` : ''}
       ${s.availability !== 'available' ? html`<div><dt>Availability</dt><dd>${stateLabel(s.availability)}${s.http_status ? ` · HTTP ${s.http_status}` : ''}</dd></div>` : ''}
     </dl>
@@ -618,7 +633,7 @@ function probe(a, i, sample, replacement) {
   return html`<li class="probe ${rejected ? 'rejected' : ok ? 'ok' : 'failed'}">
     <div class="probe-line"><span class="probe-icon" aria-hidden="true">${rejected ? '!' : ok ? '✓' : '✕'}</span>
       <strong>Probe ${i + 1}</strong>${a.replaces != null ? html`<span class="tag">replaces probe ${a.replaces + 1}</span>` : ''}<span>${rejected ? 'Not usable as a sample' : ok ? 'Valid sample' : d?.title ?? stateLabel(a.outcome)}</span>
-      <span class="muted num">${ok && sample?.accepted ? `${sample.parsed_numbers} numbers · ` : ''}${a.http_status ? `HTTP ${a.http_status} · ` : ''}${seconds(a.duration_ms)}</span></div>
+      <span class="muted num">${ok && sample?.accepted ? `${sample.parsed_numbers} numbers · ` : ''}${a.http_status ? `HTTP ${a.http_status} · ` : ''}${a.ttft_ms != null ? `${seconds(a.ttft_ms)} TTFT · ` : ''}${a.output_tps != null ? `${rate(a.output_tps)} tok/s · ` : ''}${seconds(a.duration_ms)}</span></div>
     ${rejected ? html`<p>The response contained ${sample.parsed_numbers} numbers; the fingerprint parser needs at least ${sample.minimum_numbers}, so it was excluded from scoring.</p><p class="muted">The API worked. ${replacement >= 0 ? `Probe ${replacement + 1} was sent with a fresh challenge to replace it.` : 'No replacement was sent (the per-check replacement limit or daily budget was reached).'}</p>` : ''}
     ${d && !ok ? html`<p>${d.detail}</p><p class="muted">${d.action}</p><p class="small muted mono">${d.code} · ${SOURCES[d.source] ?? d.source}</p>` : ''}
   </li>`;
@@ -669,8 +684,24 @@ function renderOverview() {
       ${availabilityStrip(m)}
       ${timeAxis()}
       ${failures.length ? html`<p class="muted small failure-line">Failures: ${failures.map(([k, n]) => `${(OUTCOMES[k] ?? stateLabel(k)).toLowerCase()} (${n})`).join(' · ')}</p>` : ''}
-    </section>`);
+    </section>
+    ${speedPanel(v)}`);
   tickRelative(pane);
+}
+
+function speedPanel(v) {
+  const {m} = v, s = m.speed;
+  if (s?.ttft_ms == null && s?.output_tps == null) return '';
+  const t = s.typical;
+  const kpi = (value, tone, label) => value == null ? '' : html`<div class="speed-kpi"><span class="kpi-value num speed-value tone-${tone}">${value}</span><span class="muted">${label}</span></div>`;
+  return html`<section class="panel">
+    <h3>Speed · latest check</h3>
+    <div class="speed-kpis">
+      ${kpi(s.ttft_ms != null ? seconds(s.ttft_ms) : null, s.ttft_tone, 'time to first token')}
+      ${kpi(s.output_tps != null ? rate(s.output_tps) : null, s.tps_tone, 'tok/s decode')}
+    </div>
+    <p class="muted small">Typical for <span class="mono">${m.expected_model}</span> at ${m.effort} reasoning over ${s.checks} check${s.checks === 1 ? '' : 's'} in ${WINDOW_LABEL[ui.window]}: ${t.ttft_ms != null ? `${seconds(t.ttft_ms)} TTFT` : '—'} · ${t.output_tps != null ? `${rate(t.output_tps)} tok/s` : '—'}. Hidden reasoning counts toward time to first token.</p>
+  </section>`;
 }
 
 async function loadHistory(monitor, more) {
@@ -701,15 +732,22 @@ function renderHistory() {
   const state = drawer.history;
   const pane = $('#pane-history');
   if (!state) return;
+  let day = null;
+  const entries = state.runs.map(r => {
+    const s = r.state === 'completed' ? (r.identity === 'unknown' && r.availability === 'unavailable' ? 'unavailable' : r.identity) : r.state;
+    const top = r.candidates?.[0], {ttft_ms: ttft, output_tps: tps} = r.speed ?? {};
+    const date = formatDay(r.started_at);
+    const heading = date !== day ? html`<li class="history-day">${date}</li>` : '';
+    day = date;
+    return html`${heading}<li><button type="button" class="history-entry" data-goto="${r.id}" aria-current="${r.id === drawer.run}">
+      <span class="num muted" title="${formatFull(r.started_at)}">${formatTime(r.started_at)}</span>
+      <span class="history-state"><i class="dot tone-${stateTone(s)}" aria-hidden="true"></i>${stateLabel(s)}</span>
+      <span class="history-closest">${top ? html`<span class="mono">${top.model}</span> <span class="num muted">${percent(top.weight)}</span>` : html`<span class="muted">—</span>`}${r.kind === 'confirmation' ? html`<span class="muted"> · confirmation</span>` : ''}</span>
+      <span class="num muted">${ttft != null ? seconds(ttft) : ''}${ttft != null && tps != null ? ' · ' : ''}${tps != null ? `${rate(tps)} tok/s` : ''}</span>
+    </button></li>`;
+  });
   pane.innerHTML = String(html`
-    ${state.runs.length ? html`<ol class="history-list">${state.runs.map(r => {
-      const s = r.state === 'completed' ? (r.identity === 'unknown' && r.availability === 'unavailable' ? 'unavailable' : r.identity) : r.state;
-      return html`<li><button type="button" class="history-entry" data-goto="${r.id}" aria-current="${r.id === drawer.run}">
-        ${badge(s)}
-        <span class="history-closest">${r.candidates?.[0] ? html`<span class="mono">${r.candidates[0].model}</span> ${percent(r.candidates[0].weight)}` : html`<span class="muted">no fingerprint</span>`}${r.kind === 'confirmation' ? html` <span class="tag">confirmation</span>` : ''}</span>
-        <span class="muted small num" title="${formatFull(r.started_at)}">${formatDate(r.started_at)}</span>
-      </button></li>`;
-    })}</ol>` : state.loading ? '' : html`<p class="muted">No checks recorded yet.</p>`}
+    ${state.runs.length ? html`<ol class="history-list">${entries}</ol>` : state.loading ? '' : html`<p class="muted">No checks recorded yet.</p>`}
     ${state.loading ? html`<div class="skeleton-block"></div>` : ''}
     ${state.error ? html`<p class="error-text">Couldn’t load history. ${state.error}</p>` : ''}
     ${state.next && !state.loading ? html`<button type="button" class="button" data-more>Load earlier checks</button>` : ''}`);

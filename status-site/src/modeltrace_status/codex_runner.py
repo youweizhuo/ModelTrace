@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 
 from .diagnostics import diagnose
+from .relay import Relay
 
 # Keep inference in Codex, but make numeric probes tool-free and independent of
 # personal plugins, skills, sessions and auth. Reject any unexpected tool event.
@@ -42,8 +43,8 @@ class CodexRunner:
         started = time.monotonic()
         runtime = self.settings.data_dir / "probes"
         runtime.mkdir(parents=True, exist_ok=True, mode=0o700)
-        result = {"outcome": "runner_error", "text": "", "usage": {}, "ttft_ms": None, "tbt_ms": None}
-        with tempfile.TemporaryDirectory(prefix="probe-", dir=runtime) as directory:
+        result = {"outcome": "runner_error", "text": "", "usage": {}, "ttft_ms": None, "output_tps": None}
+        with tempfile.TemporaryDirectory(prefix="probe-", dir=runtime) as directory, Relay(monitor.base_url, self.settings.timeout) as relay:
             task_dir = Path(directory)
             codex_home = task_dir / "codex"
             work_dir = task_dir / "work"
@@ -57,7 +58,7 @@ class CodexRunner:
                 "model_provider": "modeltrace_monitor", "model": monitor.model,
                 "model_reasoning_effort": monitor.effort, "approval_policy": "never", "web_search": "disabled",
                 "model_providers.modeltrace_monitor.name": "ModelTrace monitor",
-                "model_providers.modeltrace_monitor.base_url": monitor.base_url,
+                "model_providers.modeltrace_monitor.base_url": relay.base_url,
                 "model_providers.modeltrace_monitor.env_key": "MODELTRACE_PROBE_API_KEY",
                 "model_providers.modeltrace_monitor.wire_api": "responses",
                 "model_providers.modeltrace_monitor.request_max_retries": 0,
@@ -155,13 +156,14 @@ class CodexRunner:
                     child.wait()
                 if not stop:
                     if finished and not failed and child.returncode == 0 and messages:
-                        result.update(outcome="responded", text=messages[-1])
+                        result.update(outcome="responded", text=messages[-1], **relay.metrics(result["usage"]))
                     else:
                         # Turn errors take precedence over unrelated CLI warnings.
                         # Translate recognized codes into fixed, public-safe text.
-                        diagnostic = errors[-1] if errors else stderr.decode(errors="replace")
+                        # A failed upstream connection reaches Codex only as the relay's 502.
+                        diagnostic = relay.failure or (errors[-1] if errors else stderr.decode(errors="replace"))
                         result["outcome"] = categorize(diagnostic)
-                        status = re.search(r"(?:status(?: code)?|HTTP)\s*[:=]?\s*([45]\d{2})\b", diagnostic, re.I)
+                        status = not relay.failure and re.search(r"(?:status(?: code)?|HTTP)\s*[:=]?\s*([45]\d{2})\b", diagnostic, re.I)
                         if status:
                             result["http_status"] = int(status[1])
                         result.update(diagnose(diagnostic, result["outcome"], result.get("http_status")))

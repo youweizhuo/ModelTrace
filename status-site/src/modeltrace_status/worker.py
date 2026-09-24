@@ -85,7 +85,7 @@ class Worker:
                 except Exception:
                     outcome = {"outcome": "runner_error", "text": "", "usage": {}}
                 self.store.finish_attempt(attempt_id, outcome["outcome"])
-                attempt = {k: outcome.get(k) for k in ("outcome", "duration_ms", "usage", "ttft_ms", "tbt_ms", "http_status", "diagnostic")}
+                attempt = {k: outcome.get(k) for k in ("outcome", "duration_ms", "usage", "ttft_ms", "output_tps", "http_status", "diagnostic")}
                 attempt.update(started_at=started_at, finished_at=time.time())
                 if replaces is not None:
                     attempt["replaces"] = replaces

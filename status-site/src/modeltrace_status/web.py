@@ -5,7 +5,8 @@ import os
 import secrets
 import threading
 import time
-from collections import Counter
+from collections import Counter, defaultdict
+from statistics import median
 from pathlib import Path
 
 from flask import Flask, abort, jsonify, redirect, request, send_from_directory, session
@@ -32,6 +33,20 @@ def finished(runs):
     return next((run for run in runs if run["state"] != "running"), None)
 
 
+def run_speed(run):
+    """Median TTFT and decode rate over a check's responded probes (None before timing was recorded)."""
+    values = lambda key: [a[key] for a in run["attempts"] if a["outcome"] == "responded" and a.get(key) is not None]
+    ttft, tps = values("ttft_ms"), values("output_tps")
+    return {"ttft_ms": round(median(ttft)) if ttft else None, "output_tps": round(median(tps), 1) if tps else None}
+
+
+def speed_tone(value, typical, higher_is_better=False):
+    if value is None or typical is None:
+        return None
+    ratio = typical / value if higher_is_better else value / typical
+    return "good" if ratio <= 1.25 else "warn" if ratio <= 2 else "bad"
+
+
 def run_summary(run):
     """Everything a history tooltip needs, so hovering never waits on the network."""
     top = next(iter(run.get("candidates") or []), None)
@@ -41,7 +56,7 @@ def run_summary(run):
             "availability": run["availability"], "started_at": run["started_at"], "finished_at": run["finished_at"],
             "top": {"model": top["model"], "weight": top["weight"]} if top else None,
             "expected_weight": run.get("expected_weight"), "valid_samples": run.get("valid_samples", 0),
-            "planned_samples": run.get("planned_samples", 3), "http_status": status,
+            "planned_samples": run.get("planned_samples", 3), "http_status": status, **run_speed(run),
             "failure": (failure.get("diagnostic") or {}).get("title") if failure else None}
 
 
@@ -93,6 +108,8 @@ def snapshot(store, settings, window="24h", now=None):
     online = worker_online(heartbeat, now)
     checker = store.meta("checker", {})
     monitors = []
+    # Speed is compared with every check in the window that asked for the same model at the same effort.
+    peers = defaultdict(lambda: {"ttft_ms": [], "output_tps": []})
     for monitor, _, runtime in store.targets(enabled=False):
         rows = store.history(monitor.id, since=since, limit=10000)
         latest = rows[0] if rows else next(iter(store.history(monitor.id, limit=1)), None)
@@ -125,6 +142,9 @@ def snapshot(store, settings, window="24h", now=None):
             bucket["latest_identity"] = identity
             bucket["latest_availability"] = run["availability"]
             bucket["summary"] = run_summary(run)
+            for key, value in run_speed(run).items():
+                if value is not None:
+                    peers[(monitor.expected_model, monitor.effort)][key].append(value)
             if run_method(run) not in bucket["versions"]:
                 bucket["versions"].append(run_method(run))
         good = outcomes["responded"]
@@ -140,6 +160,13 @@ def snapshot(store, settings, window="24h", now=None):
                         "outcomes": dict(outcomes), "assessments": dict(assessments), "scheduled_checks": scheduled,
                         "success_rate": good / (good + failed) if good + failed else None},
         })
+    for m in monitors:
+        speed = run_speed(m["latest_completed"]) if m["latest_completed"] else {"ttft_ms": None, "output_tps": None}
+        group = peers[(m["expected_model"], m["effort"])]
+        typical = {key: median(group[key]) if group[key] else None for key in speed}
+        m["speed"] = speed | {"typical": typical, "checks": len(group["ttft_ms"]),
+                              "ttft_tone": speed_tone(speed["ttft_ms"], typical["ttft_ms"]),
+                              "tps_tone": speed_tone(speed["output_tps"], typical["output_tps"], higher_is_better=True)}
     return {"at": now, "window": window, "worker_online": online, "heartbeat": heartbeat, "checker": checker,
             "monitors": monitors, "settings": {"daily_budget": settings.daily_budget, "confirmation_batches": settings.confirmation_batches}}
 
@@ -237,7 +264,7 @@ def create_app(settings=None):
         except ValueError:
             abort(400)
         rows = store.history(mid, limit=50, before=before)
-        return jsonify(runs=rows, next_before=rows[-1]["started_at"] if len(rows) == 50 else None)
+        return jsonify(runs=[run | {"speed": run_speed(run)} for run in rows], next_before=rows[-1]["started_at"] if len(rows) == 50 else None)
 
     @app.get("/api/admin/session")
     def admin_session():

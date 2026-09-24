@@ -24,7 +24,7 @@ print(json.dumps({'type':'turn.completed','usage':{'output_tokens':3}}),flush=Tr
     result = CodexRunner(replace(settings, codex=cli)).run(settings.monitors[0], "secret", "prompt")
     assert result["outcome"] == "responded"
     assert result["text"] == "1, 2, 3"
-    assert result["ttft_ms"] is None and result["tbt_ms"] is None
+    assert result["ttft_ms"] is None and result["output_tps"] is None
     assert result["usage"]["output_tokens"] == 3
 
 

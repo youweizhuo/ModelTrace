@@ -117,6 +117,9 @@ export function until(timestamp) {
 const dateFormat = new Intl.DateTimeFormat(undefined, {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'});
 const timeFormat = new Intl.DateTimeFormat(undefined, {hour: '2-digit', minute: '2-digit'});
 export const formatDate = t => dateFormat.format(new Date(t * 1000));
+const dayFormat = new Intl.DateTimeFormat(undefined, {weekday: 'short', month: 'short', day: 'numeric'});
+export const formatDay = t => dayFormat.format(new Date(t * 1000));
+export const formatTime = t => timeFormat.format(new Date(t * 1000));
 export const formatFull = t => new Date(t * 1000).toLocaleString();
 export function formatRange(start, end) {
   const a = new Date(start * 1000), b = new Date(end * 1000);

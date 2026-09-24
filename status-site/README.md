@@ -141,7 +141,7 @@ The checker version is derived from the scorer and bank hashes, probe profile an
 policy only, so repository commits that leave those unchanged keep current results.
 Monitors appear in a dense table, one card per provider (or per expected model,
 or ungrouped): identity, closest reference model with its relative weight
-(from the latest check, with a meter colored by the identity result),
+(from the latest check, with a meter colored by the identity result), speed,
 history and last/next check. A check in progress is shown next to the last
 completed result rather than replacing it. Rows can be filtered by state or text
 and sorted by severity, name or last check. A banner appears only when the worker
@@ -173,6 +173,15 @@ Drawer views are linkable (`/#monitor=…&run=…`) and the browser Back button
 closes them. Links from `/manage` use `/?monitor=…&run=…`, which the status page
 moves into the fragment, because Safari can percent-encode the `#` of a followed
 link; a request for such an encoded path (`/%23monitor=…`) redirects to the fragment.
+
+**Speed** is measured by a local pass-through the runner puts between Codex and
+the provider for each probe; it forwards requests unchanged and records only
+event arrival times. TTFT runs from the request to the first streamed token, so
+hidden reasoning counts toward it; decode rate is answer tokens over the time
+between the first and last answer token. The table, Overview and History show
+each check's probe median, colored against the median of all checks for the same
+expected model and reasoning effort in the selected window (green within 1.25×,
+amber within 2×, red beyond). Checks recorded before timing was added show none.
 
 Availability is **successful Codex probes / probes with observed provider
 outcomes**, not continuous uptime. Credential errors, rate/quota errors, upstream
