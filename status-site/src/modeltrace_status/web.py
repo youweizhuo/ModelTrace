@@ -40,6 +40,12 @@ def run_speed(run):
     return {"ttft_ms": round(median(ttft)) if ttft else None, "output_tps": round(median(tps), 1) if tps else None}
 
 
+def assessed(run):
+    """Scheduled checks with a full sample set; confirmations only follow mismatches and would double-count them."""
+    return (run["kind"] == "scheduled" and run["state"] == "completed" and run.get("expected_weight") is not None
+            and run.get("valid_samples", 0) >= run.get("planned_samples", 3))
+
+
 def speed_tone(value, typical, higher_is_better=False):
     if value is None or typical is None:
         return None
@@ -122,6 +128,7 @@ def snapshot(store, settings, window="24h", now=None):
         assessments = Counter()
         outcomes = Counter()
         scheduled = 0
+        weights = []
         buckets = [{"start": since + i * seconds / count, "end": since + (i + 1) * seconds / count,
                     "counts": {}, "runs": 0, "scheduled": 0, "confirmations": 0, "latest_id": None,
                     "latest_identity": None, "latest_availability": None, "summary": None, "versions": []} for i in range(count)]
@@ -132,6 +139,8 @@ def snapshot(store, settings, window="24h", now=None):
             assessments[identity] += 1
             outcomes.update(a["outcome"] for a in run["attempts"])
             scheduled += run["kind"] == "scheduled"
+            if assessed(run):
+                weights.append(run["expected_weight"])
             i = min(count - 1, max(0, int((run["started_at"] - since) / seconds * count)))
             bucket = buckets[i]
             bucket["counts"][identity] = bucket["counts"].get(identity, 0) + 1
@@ -156,6 +165,7 @@ def snapshot(store, settings, window="24h", now=None):
                        "completed_samples": len(active["attempts"]),
                        "planned_samples": active.get("planned_probes", active.get("planned_samples", 3))} if active else None,
             "stale": stale, "configuration_changed": changed, "history": buckets,
+            "score": {"value": sum(weights) / len(weights) if weights else None, "checks": len(weights)},
             "metrics": {"responded": good, "failed": failed, "unknown": sum(outcomes.values()) - good - failed,
                         "outcomes": dict(outcomes), "assessments": dict(assessments), "scheduled_checks": scheduled,
                         "success_rate": good / (good + failed) if good + failed else None},

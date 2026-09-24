@@ -6,7 +6,7 @@ import {
 
 const GROUPS = ['provider', 'model', 'none'];
 const WINDOWS = ['24h', '7d', '30d'];
-const SORTS = ['severity', 'monitor', 'checked'];
+const SORTS = ['severity', 'score', 'monitor', 'checked'];
 const WINDOW_LABEL = {'24h': '24 hours', '7d': '7 days', '30d': '30 days'};
 const AXIS = {'24h': ['24h ago', '12h ago', 'now'], '7d': ['7d ago', '3.5d ago', 'now'], '30d': ['30d ago', '15d ago', 'now']};
 const rate = tps => tps < 10 ? tps.toFixed(1) : String(Math.round(tps));
@@ -89,6 +89,7 @@ function compare(a, b) {
   switch (ui.sort) {
     case 'monitor': result = byName; break;
     case 'checked': result = (a.checkedAt || Infinity) - (b.checkedAt || Infinity); break;
+    case 'score': result = (a.m.score.value ?? Infinity) - (b.m.score.value ?? Infinity); break;
     default: result = a.severity - b.severity;
   }
   return (ui.reverse ? -result : result) || byName;
@@ -146,6 +147,7 @@ function renderHead() {
   patch($('#table-head'), html`
     <div class="c-monitor">${sortButton('monitor', 'Monitor')}</div>
     <div class="c-identity">${sortButton('severity', 'Identity')}</div>
+    <div class="c-score" title="Average weight the fingerprint gave the expected model over fully assessed scheduled checks in ${WINDOW_LABEL[ui.window]}">${sortButton('score', 'Score')}</div>
     <div class="c-closest"><span class="head-label">Closest match</span></div>
     <div class="c-speed" title="Latest check: time to first token and answer decode rate. Colored against checks of the same model and reasoning in this window."><span class="head-label">Speed</span></div>
     <div class="c-history" title="History · ${WINDOW_LABEL[ui.window]}">${timeAxis()}</div>
@@ -171,9 +173,28 @@ function renderRows(views) {
   }
   patch(container, [...groups].map(([label, items]) => html`
     <section class="group" aria-label="${label || 'Monitors'}">
-      ${ui.group === 'none' ? '' : html`<h2 class="group-head"><span class="group-name">${stateDots(items)}${label}</span></h2>`}
+      ${ui.group === 'none' ? '' : html`<h2 class="group-head"><span class="group-name">${stateDots(items)}${label}</span>${groupScore(items)}</h2>`}
       <ul class="rows" role="list">${items.map(row)}</ul>
     </section>`));
+}
+
+const scoreTone = value => value >= .8 ? 'good' : value >= .5 ? 'warn' : 'bad';
+
+function scoreCell(score, subject) {
+  if (score?.value == null) return html`<span class="muted">—</span>`;
+  const title = `${subject} ${score.checks} assessed check${score.checks === 1 ? '' : 's'} in ${WINDOW_LABEL[ui.window]}`;
+  return html`<div class="score tone-${scoreTone(score.value)}" title="${title}">
+    <span class="num">${percent(score.value)}</span>
+    <div class="meter" aria-hidden="true"><i style="width:${(Math.max(0, Math.min(1, score.value)) * 100).toFixed(1)}%"></i></div>
+  </div>`;
+}
+
+// Each monitor counts once, however often it is checked.
+function groupScore(items) {
+  const scored = items.filter(v => v.m.score.value != null);
+  if (!scored.length) return '';
+  const value = scored.reduce((n, v) => n + v.m.score.value, 0) / scored.length;
+  return html`<span class="group-score">${scoreCell({value, checks: scored.reduce((n, v) => n + v.m.score.checks, 0)}, `Average of ${scored.length} model${scored.length === 1 ? '' : 's'} over`)}</span>`;
 }
 
 // One dot per model, in row order, so a provider whose models disagree is visible at a glance.
@@ -196,6 +217,7 @@ function row(v) {
       ${meta ? html`<div class="sub">${meta}</div>` : ''}
     </div>
     <div class="c-identity">${identityCell(v)}</div>
+    <div class="c-score">${scoreCell(v.m.score, `${v.m.expected_model} over`)}</div>
     <div class="c-closest">${closestCell(v)}</div>
     <div class="c-speed">${speedCell(v)}</div>
     <div class="c-history">${bars(v)}</div>

@@ -26,7 +26,8 @@ class FakeAdapter:
         outputs = [o for o in outputs if self.sample_valid(o)]
         mismatch = len(outputs) == 3 and all(o["text"] == "mismatch" for o in outputs)
         return {"identity": "mismatch_signal" if mismatch else "consistent" if len(outputs) == 3 else "inconclusive" if outputs else "unknown",
-                "candidates": [{"model": "gpt-6-sol" if mismatch else expected, "weight": .9}] if outputs else [], "valid_samples": len(outputs)}
+                "candidates": [{"model": "gpt-6-sol" if mismatch else expected, "weight": .9}] if outputs else [], "valid_samples": len(outputs),
+                "expected_weight": (.05 if mismatch else .9) if outputs else None}
 
 
 class FakeRunner:
@@ -496,3 +497,12 @@ def test_failed_requests_are_not_replaced(settings, store):
     Worker(settings, store, runner, FakeAdapter()).check(*run_monitor(store))
     assert runner.count == 3
     assert store.history("one")[0]["availability"] == "partial"
+
+
+def test_identity_score_averages_expected_weight_over_full_scheduled_checks(settings, store):
+    worker = Worker(replace(settings, confirmation_batches=0), store, FakeRunner(["match"] * 3 + ["mismatch"] * 3 + ["match", "short", "short"]), FakeAdapter())
+    for _ in range(3):
+        worker.check(*run_monitor(store))
+    score = snapshot(store, settings)["monitors"][0]["score"]
+    # The check with only one valid sample is left out.
+    assert score["checks"] == 2 and abs(score["value"] - .475) < 1e-9
