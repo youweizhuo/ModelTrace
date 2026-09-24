@@ -103,6 +103,13 @@ def test_public_api_never_returns_keys_or_private_probe_evidence(settings, store
     assert client.get("/api/status?window=invalid").status_code == 400
 
 
+
+def test_percent_encoded_drawer_link_redirects_to_fragment(settings, store):
+    client = create_app(settings).test_client()
+    response = client.get("/%23monitor=one&run=abc")
+    assert response.status_code == 302 and response.headers["Location"] == "/#monitor=one&run=abc"
+    assert client.get("/missing").json == {"error": "Not Found"}
+
 def login(client, settings):
     token = client.get("/api/admin/session").json["csrf"]
     password = (settings.data_dir / "admin-password").read_text().strip()

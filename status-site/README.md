@@ -170,7 +170,9 @@ A History tab lists the monitor's full, paginated check list. Table rows show a
 channel or differing expected model only when set, and a closest match that is
 just the expected model is dimmed so disagreements stand out.
 Drawer views are linkable (`/#monitor=…&run=…`) and the browser Back button
-closes them.
+closes them. Links from `/manage` use `/?monitor=…&run=…`, which the status page
+moves into the fragment, because Safari can percent-encode the `#` of a followed
+link; a request for such an encoded path (`/%23monitor=…`) redirects to the fragment.
 
 Availability is **successful Codex probes / probes with observed provider
 outcomes**, not continuous uptime. Credential errors, rate/quota errors, upstream

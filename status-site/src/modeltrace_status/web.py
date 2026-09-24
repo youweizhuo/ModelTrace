@@ -8,7 +8,7 @@ import time
 from collections import Counter
 from pathlib import Path
 
-from flask import Flask, abort, jsonify, request, send_from_directory, session
+from flask import Flask, abort, jsonify, redirect, request, send_from_directory, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .config import load_settings
@@ -188,6 +188,9 @@ def create_app(settings=None):
     @app.errorhandler(413)
     @app.errorhandler(429)
     def http_error(error):
+        # A drawer link whose '#' was percent-encoded (/%23monitor=…) arrives as a path.
+        if error.code == 404 and request.method == "GET" and request.path.startswith("/#"):
+            return redirect(request.path)
         return jsonify(error=error.name), error.code
 
     @app.errorhandler(500)

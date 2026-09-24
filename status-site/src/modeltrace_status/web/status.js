@@ -359,6 +359,13 @@ const drawer = {
 const runCache = new Map();
 const ID = /^[A-Za-z0-9_-]{1,80}$/;
 
+// Links from other pages carry the drawer state in the query string: Safari has
+// been seen to percent-encode a '#' in a followed link, making it part of the path.
+{
+  const query = new URLSearchParams(location.search);
+  if (query.has('monitor') || query.has('run')) history.replaceState(null, '', `${location.pathname}#${query}`);
+}
+
 function readHash() {
   const params = new URLSearchParams(location.hash.slice(1));
   const clean = key => (ID.test(params.get(key) ?? '') ? params.get(key) : null);

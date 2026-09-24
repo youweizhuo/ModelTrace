@@ -206,7 +206,7 @@ function applyActivity(next) {
     }
     patch($(`[data-activity="${CSS.escape(mid)}"]`), cell);
     const identity = state?.identity
-      ? html`<a href="/#monitor=${encodeURIComponent(mid)}&run=${encodeURIComponent(state.identity_run_id)}" title="Open on the status page">${badge(state.identity)}</a>`
+      ? html`<a href="/?monitor=${encodeURIComponent(mid)}&run=${encodeURIComponent(state.identity_run_id)}" title="Open on the status page">${badge(state.identity)}</a>`
       : html`<span class="muted small">No result yet</span>`;
     patch($(`[data-identity="${CSS.escape(mid)}"]`), identity);
     // The activity column shows progress; the button only reflects availability.
