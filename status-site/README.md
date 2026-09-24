@@ -75,7 +75,9 @@ Click a provider's name to show its configuration: the base URL and each
 model's expected model, reasoning, interval, and channel. Each model row shows
 its latest identity result (linked to the evidence on the status page) and live
 activity: Queued, then Checking with the completed probe count and a progress
-bar, then the latest completion or failure time and the next scheduled check. Activity updates every two seconds. Queue and run state survive
+bar, then when the last check finished and when the next is due. The last check's
+outcome is named only when it wasn't a clean finish (Partial, Failed, Stopped,
+Daily limit, Check error). Provider headers show a badge only when paused. Activity updates every two seconds. Queue and run state survive
 a page reload; clicking while a check is already active does not schedule another
 batch. **Check all** queues every enabled model of a provider. An offline worker
 is shown explicitly in the header.
@@ -152,13 +154,20 @@ unavailable, so an outage is never confused with a mismatch. Empty periods are
 pale gray, and a tick above a bar marks a checker version change. The colours are
 validated for colour-vision deficiency; every state also has a text label.
 
-Hover or keyboard-focus a bar for a summary of that check. Each history strip is
+Hover or keyboard-focus a bar for a summary of that check: its state and closest
+match, plus the expected model's weight, valid samples or availability only when
+they are not routine. Each history strip is
 a single tab stop; use the arrow keys to move between periods. Click (or tap) a
-bar to open that check in the evidence drawer: candidate weights, probe outcomes
-and method provenance. Click a monitor's name for its Overview: current identity,
-availability for the selected period (success rate, per-period strip and failure
-breakdown), monitor settings, and the provider's other monitors. A History tab
-lists the monitor's full, paginated check list.
+bar to open that check in the evidence drawer: a one-paragraph explanation, the
+top candidate weights (plus the expected model), and each probe's outcome. Method
+provenance is collapsed; settings the run used differently from the current
+configuration are noted beside its time. Click a monitor's name for its Overview:
+the current identity with the same explanation, when it was checked and is next
+due, and availability for the selected period (success rate, per-period strip and
+any failures by reason). Settings appear in the drawer subtitle and on `/manage`.
+A History tab lists the monitor's full, paginated check list. Table rows show a
+channel or differing expected model only when set, and a closest match that is
+just the expected model is dimmed so disagreements stand out.
 Drawer views are linkable (`/#monitor=…&run=…`) and the browser Back button
 closes them.
 

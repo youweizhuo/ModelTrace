@@ -109,8 +109,7 @@ function providerCard(p) {
       <h2 class="provider-title"><button type="button" class="provider-toggle" data-expand="${p.id}" data-key="expand:${p.id}" aria-expanded="${open}" aria-controls="config-${p.id}" title="${open ? 'Hide' : 'Show'} configuration">
         <span class="chevron" aria-hidden="true"></span>
         <span class="provider-name" id="provider-${p.id}">${p.name}</span>
-        ${p.enabled ? badge('ok', {label: 'Active', tone: 'good'}) : badge('paused')}
-        <span class="provider-count">${p.monitors.length} model${p.monitors.length === 1 ? '' : 's'}</span>
+        ${p.enabled ? '' : badge('paused')}
       </button></h2>
       <div class="provider-actions">
         <button type="button" class="button small" data-check-all="${p.id}" data-key="check-all:${p.id}" ${p.enabled && p.monitors.some(m => m.enabled) ? '' : 'disabled'}>Check all</button>
@@ -136,9 +135,6 @@ function providerCard(p) {
         </div>`)}
       </div>
     </section>
-    <div class="model-head" aria-hidden="true">
-      <span>Model</span><span>Identity</span><span>Activity</span><span></span>
-    </div>
     ${p.monitors.map(m => modelRow(p, m))}
   </article>`;
 }
@@ -205,7 +201,8 @@ function applyActivity(next) {
     } else {
       const last = state.finished_at ? resultLabel(state) : null;
       const schedule = !state.enabled ? (provider?.enabled ? 'paused' : 'provider paused') : state.next_due ? html`next <span data-until="${state.next_due}"></span>` : 'due now';
-      cell = html`${last ? html`<span title="${formatFull(state.finished_at)}"><i class="dot tone-${last[1]}" aria-hidden="true"></i> ${last[0]} · <span data-ago="${state.finished_at}">${ago(state.finished_at)}</span></span>` : html`<span class="muted">No checks yet</span>`}<div class="sub">${schedule}</div>`;
+      const outcome = last && last[0] !== 'Done' ? html`<i class="dot tone-${last[1]}" aria-hidden="true"></i> ${last[0]} · ` : '';
+      cell = html`${last ? html`<span title="${formatFull(state.finished_at)}">${outcome}<span data-ago="${state.finished_at}">${ago(state.finished_at)}</span></span>` : html`<span class="muted">No checks yet</span>`}<span class="muted"> · ${schedule}</span>`;
     }
     patch($(`[data-activity="${CSS.escape(mid)}"]`), cell);
     const identity = state?.identity

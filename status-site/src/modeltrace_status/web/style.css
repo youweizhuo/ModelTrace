@@ -225,9 +225,6 @@ main.page { padding-bottom: 8px; }
 .closest-line .num { margin-left: auto; font-size: 12.5px; }
 .meter { height: 4px; margin-top: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
 .meter i { display: block; height: 100%; border-radius: 2px; background: var(--muted); }
-.cat-mismatch .c-closest .meter i { background: var(--bad); }
-.cat-consistent .c-closest .meter i { background: var(--good); }
-.cat-inconclusive .c-closest .meter i { background: var(--info); }
 
 /* -------------------------------------------------------------- history */
 .bars { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 2px; height: 26px; margin-top: 5px; margin-bottom: 1px; }
@@ -315,8 +312,6 @@ dialog.drawer > form { display: flex; flex-direction: column; min-height: 0; hei
 .method summary { cursor: pointer; }
 
 .history-list { display: grid; gap: 2px; margin-bottom: 14px; }
-.sibling-list { display: grid; gap: 2px; margin-top: 8px; }
-.overview-facts { margin-top: 14px; }
 .kpi { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13px; }
 .kpi-value { font-size: 24px; font-weight: 650; letter-spacing: -.3px; }
 .bars.static .bar { cursor: default; filter: none; }
@@ -376,7 +371,6 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
 .provider-toggle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 36px; padding: 4px 10px 4px 8px; border: 0; border-radius: 4px; background: none; text-align: left; cursor: pointer; }
 .provider-toggle:hover { background: var(--hover); }
 .provider-name { font-size: 15px; font-weight: 650; overflow-wrap: anywhere; }
-.provider-count { color: var(--muted); font-size: 12.5px; }
 .chevron { flex: none; width: 7px; height: 7px; margin: 0 3px 0 1px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s; }
 .is-open .chevron { transform: rotate(45deg) translate(-2px, -1px); }
 .provider-actions { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -390,7 +384,7 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
 .config-row + .config-row { border-top: 1px solid var(--line); }
 .config-head { min-height: 30px; color: var(--muted); font-size: 12px; font-weight: 550; }
 
-.model-head, .model-row {
+.model-row {
   display: grid;
   grid-template-columns: minmax(200px, 1.6fr) minmax(150px, 1fr) minmax(190px, 1.2fr) 150px;
   grid-template-areas: "model identity activity actions";
@@ -398,7 +392,6 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
   align-items: center;
   padding: 0 16px;
 }
-.model-head { min-height: 32px; border-top: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 550; }
 .model-row { min-height: 54px; padding-top: 8px; padding-bottom: 8px; border-top: 1px solid var(--line); font-size: 13px; }
 .model-row:last-child { border-radius: 0 0 4px 4px; }
 .model-row:hover { background: var(--surface-2); }
@@ -437,7 +430,7 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
   }
   .table-head { grid-template-areas: "mon id close check"; }
   .table-head .c-history { display: none; }
-  .model-head, .model-row { grid-template-columns: minmax(160px, 1.5fr) minmax(130px, 1fr) minmax(160px, 1fr) 140px; }
+  .model-row { grid-template-columns: minmax(160px, 1.5fr) minmax(130px, 1fr) minmax(160px, 1fr) 140px; }
 }
 
 @media (max-width: 760px) {
@@ -468,7 +461,6 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
   dialog.drawer, dialog.drawer.wide { inset: auto 0 0 0; width: 100vw; height: auto; max-height: 92vh; max-height: 92dvh; border-width: 1px 0 0; border-radius: 6px 6px 0 0; }
   @keyframes drawer-in { from { transform: translateY(32px); opacity: 0; } }
   .form-grid, .model-editor .form-grid { grid-template-columns: minmax(0, 1fr); }
-  .model-head { display: none; }
   .model-row {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas: "model identity" "activity actions";
@@ -503,3 +495,8 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
   .bar, .swatch, .dot, .badge, .chip { border: 1px solid CanvasText; forced-color-adjust: none; }
 }
 
+
+/* Closest match that is simply the expected model is routine; mismatches stand out. */
+.closest-line.is-expected { color: var(--muted); }
+.overview-when { margin: 8px 0 0; }
+.failure-line { margin: 8px 0 0; }

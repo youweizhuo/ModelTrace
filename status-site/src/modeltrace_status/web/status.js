@@ -183,14 +183,15 @@ function stateDots(items) {
 function row(v) {
   const {m, done, top, active} = v;
   const primary = ui.group === 'provider' ? m.model : ui.group === 'model' ? m.provider : null;
-  const meta = [m.effort, `every ${intervalLabel(m.interval)}`, m.channel !== 'Standard' ? m.channel : null,
+  // Settings live in the drawer subtitle and on /manage; rows only carry what changes the reading.
+  const meta = [m.channel !== 'Standard' ? m.channel : null,
     m.expected_model !== m.model ? `expects ${m.expected_model}` : null].filter(Boolean).join(' · ');
   return html`<li class="row cat-${v.category}${m.enabled ? '' : ' is-paused'}">
     <div class="c-monitor">
       <button type="button" class="monitor-link" data-open="${m.id}" data-key="open:${m.id}" aria-label="Details for ${v.name}">
         ${primary === null ? html`<span class="muted">${m.provider} /</span> <span class="mono">${m.model}</span>` : html`<span class="${ui.group === 'provider' ? 'mono' : ''}">${primary}</span>`}
       </button>
-      <div class="sub">${meta}</div>
+      ${meta ? html`<div class="sub">${meta}</div>` : ''}
     </div>
     <div class="c-identity">${identityCell(v)}</div>
     <div class="c-closest">${closestCell(v)}</div>
@@ -217,10 +218,10 @@ function identityCell(v) {
 }
 
 function closestCell(v) {
-  const {top} = v;
+  const {top, m} = v;
   if (!top) return html`<span class="muted">—</span>`;
-  return html`<div class="closest-line"><span class="mono truncate" title="${top.model}">${top.model}</span><span class="num">${percent(top.weight)}</span></div>
-    <div class="meter" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, top.weight * 100)).toFixed(1)}%"></i></div>`;
+  const same = top.model === m.expected_model;
+  return html`<div class="closest-line${same ? ' is-expected' : ''}"><span class="mono truncate" title="${top.model}${same ? ' (expected model)' : ''}">${top.model}</span><span class="num">${percent(top.weight)}</span></div>`;
 }
 
 function bars(v) {
@@ -326,11 +327,10 @@ function showTip(button) {
     <div class="tip-time">${formatRange(b.start, b.end)}</div>
     <div class="tip-state">${badge(s.state === 'completed' ? (s.identity === 'unknown' && s.availability === 'unavailable' ? 'unavailable' : s.identity) : s.state)}${s.kind === 'confirmation' ? html`<span class="tag">confirmation</span>` : ''}</div>
     <dl class="tip-facts">
-      <div><dt>Expected</dt><dd class="mono">${v.m.expected_model}</dd></div>
       <div><dt>Closest</dt><dd>${s.top ? html`<span class="mono">${s.top.model}</span> · ${percent(s.top.weight)}` : 'no fingerprint'}</dd></div>
-      ${s.top && s.top.model !== v.m.expected_model ? html`<div><dt>Expected weight</dt><dd>${percent(s.expected_weight)}</dd></div>` : ''}
-      <div><dt>Valid samples</dt><dd>${s.valid_samples}/${s.planned_samples}</dd></div>
-      <div><dt>Availability</dt><dd>${stateLabel(s.availability)}${s.http_status ? ` · HTTP ${s.http_status}` : ''}</dd></div>
+      ${s.top && s.top.model !== v.m.expected_model ? html`<div><dt>${v.m.expected_model}</dt><dd>${percent(s.expected_weight)}</dd></div>` : ''}
+      ${s.valid_samples < s.planned_samples ? html`<div><dt>Valid samples</dt><dd>${s.valid_samples}/${s.planned_samples}</dd></div>` : ''}
+      ${s.availability !== 'available' ? html`<div><dt>Availability</dt><dd>${stateLabel(s.availability)}${s.http_status ? ` · HTTP ${s.http_status}` : ''}</dd></div>` : ''}
     </dl>
     ${s.failure ? html`<p class="tip-note">${s.failure}</p>` : ''}
     ${b.runs > 1 ? html`<p class="tip-note">${b.runs} checks in period: ${counts.map(([k, n]) => `${n} ${stateLabel(k).toLowerCase()}`).join(', ')}</p>` : ''}
@@ -531,11 +531,16 @@ function checkMarkup(run) {
   const expected = run.monitor.expected_model;
   const planned = run.planned_samples ?? 3;
   const shownState = run.state === 'completed' ? (run.identity === 'unknown' && run.availability === 'unavailable' ? 'unavailable' : run.identity) : run.state;
-  let candidates = (run.candidates ?? []).slice(0, 5);
+  let candidates = (run.candidates ?? []).slice(0, 3);
   const expectedEntry = run.candidates?.find(c => c.model === expected);
   if (expectedEntry && !candidates.includes(expectedEntry)) candidates = [...candidates, expectedEntry];
-  const durations = run.attempts.filter(a => Number.isFinite(a.duration_ms)).map(a => seconds(a.duration_ms));
   const tokens = run.attempts.reduce((n, a) => n + (a.usage?.output_tokens ?? 0), 0);
+  // Settings are shown in the drawer subtitle; only flag those this run used differently.
+  const current = viewsById.get(run.monitor_id)?.m;
+  const differs = current ? [run.monitor.effort !== current.effort ? `${run.monitor.effort} reasoning` : null,
+    run.monitor.expected_model !== current.expected_model ? `expected ${run.monitor.expected_model}` : null].filter(Boolean) : [];
+  const confirmation = run.confirmation && run.identity !== 'repeated_mismatch'
+    ? ` Confirmation ${run.confirmation.state.replaceAll('_', ' ')} (${run.confirmation.completed}/${run.confirmation.target} additional batches).` : '';
   const runs = drawer.history?.monitor === run.monitor_id ? drawer.history.runs : [];
   const index = runs.findIndex(r => r.id === run.id);
   const newer = index > 0 ? runs[index - 1] : null, older = index >= 0 ? runs[index + 1] : null;
@@ -543,13 +548,13 @@ function checkMarkup(run) {
   return html`
     <div class="check-head">
       <div>${badge(shownState)}${run.kind === 'confirmation' ? html`<span class="tag">confirmation</span>` : ''}
-        <p class="muted small">${formatFull(run.started_at)} · <span data-ago="${run.started_at}"></span></p></div>
+        <p class="muted small">${formatFull(run.started_at)} · <span data-ago="${run.started_at}"></span>${differs.length ? ` · ran with ${differs.join(', ')}` : ''}</p></div>
       <div class="pager">
         <button type="button" class="button small" data-goto="${older?.id ?? ''}" ${older ? '' : 'disabled'} aria-label="Older check">← Older</button>
         <button type="button" class="button small" data-goto="${newer?.id ?? ''}" ${newer ? '' : 'disabled'} aria-label="Newer check">Newer →</button>
       </div>
     </div>
-    <p class="verdict-text">${explanation(run)}${modelNotServedHint(run)}</p>
+    <p class="verdict-text">${explanation(run)}${confirmation}${modelNotServedHint(run)}</p>
     <section class="panel">
       <h3>Fingerprint candidates</h3>
       ${candidates.length ? html`<ul class="candidates" role="list">${candidates.map(c => html`
@@ -561,25 +566,15 @@ function checkMarkup(run) {
         : html`<p class="muted">No fingerprint scores for this check.</p>`}
     </section>
     <section class="panel">
-      <h3>Evidence</h3>
-      <dl class="facts">
-        <div><dt>Requested model</dt><dd class="mono">${run.monitor.model}</dd></div>
-        <div><dt>Expected model</dt><dd class="mono">${expected}</dd></div>
-        <div><dt>Valid samples</dt><dd>${run.valid_samples}/${planned}</dd></div>
-        <div><dt>Availability</dt><dd>${badge(run.availability)}</dd></div>
-        <div><dt>Probe durations</dt><dd>${durations.length ? durations.join(' / ') : '—'}</dd></div>
-        <div><dt>Output tokens</dt><dd>${tokens || 'not reported'}</dd></div>
-        <div><dt>Reasoning</dt><dd>${run.monitor.effort}</dd></div>
-      </dl>
-      ${run.confirmation ? html`<p class="note">Confirmation ${run.confirmation.state.replaceAll('_', ' ')} · ${run.confirmation.completed}/${run.confirmation.target} additional batches.</p>` : ''}
-    </section>
-    <section class="panel">
-      <h3>Probes</h3>
+      <h3>Probes · ${run.valid_samples}/${planned} valid</h3>
       ${run.attempts.length ? html`<ol class="probes">${probes(run)}</ol>` : html`<p class="muted">No probes were sent.</p>`}
     </section>
     <details class="method">
       <summary>Method and configuration</summary>
       <dl class="facts">
+        <div><dt>Requested model</dt><dd class="mono">${run.monitor.model}</dd></div>
+        <div><dt>Reasoning</dt><dd>${run.monitor.effort}</dd></div>
+        <div><dt>Output tokens</dt><dd>${tokens || 'not reported'}</dd></div>
         <div><dt>Checker version</dt><dd class="mono">${run.checker_version}</dd></div>
         <div><dt>Reference library</dt><dd class="mono">${p.bank_sha256?.slice(0, 16) ?? 'unavailable'}</dd></div>
         <div><dt>Upstream revision</dt><dd class="mono">${p.upstream_commit ?? 'unavailable'}</dd></div>
@@ -614,10 +609,9 @@ function probe(a, i, sample, replacement) {
   const d = a.diagnostic;
   return html`<li class="probe ${rejected ? 'rejected' : ok ? 'ok' : 'failed'}">
     <div class="probe-line"><span class="probe-icon" aria-hidden="true">${rejected ? '!' : ok ? '✓' : '✕'}</span>
-      <strong>Probe ${i + 1}</strong>${a.replaces != null ? html`<span class="tag">replaces probe ${a.replaces + 1}</span>` : ''}<span>${rejected ? 'Response not usable as a sample' : ok ? 'Response completed' : d?.title ?? stateLabel(a.outcome)}</span>
-      <span class="muted num">${a.http_status ? `HTTP ${a.http_status} · ` : ''}${seconds(a.duration_ms)}</span></div>
+      <strong>Probe ${i + 1}</strong>${a.replaces != null ? html`<span class="tag">replaces probe ${a.replaces + 1}</span>` : ''}<span>${rejected ? 'Not usable as a sample' : ok ? 'Valid sample' : d?.title ?? stateLabel(a.outcome)}</span>
+      <span class="muted num">${ok && sample?.accepted ? `${sample.parsed_numbers} numbers · ` : ''}${a.http_status ? `HTTP ${a.http_status} · ` : ''}${seconds(a.duration_ms)}</span></div>
     ${rejected ? html`<p>The response contained ${sample.parsed_numbers} numbers; the fingerprint parser needs at least ${sample.minimum_numbers}, so it was excluded from scoring.</p><p class="muted">The API worked. ${replacement >= 0 ? `Probe ${replacement + 1} was sent with a fresh challenge to replace it.` : 'No replacement was sent (the per-check replacement limit or daily budget was reached).'}</p>` : ''}
-    ${ok && sample?.accepted ? html`<p class="small muted">${sample.parsed_numbers} numbers parsed · valid sample</p>` : ''}
     ${d && !ok ? html`<p>${d.detail}</p><p class="muted">${d.action}</p><p class="small muted mono">${d.code} · ${SOURCES[d.source] ?? d.source}</p>` : ''}
   </li>`;
 }
@@ -639,64 +633,34 @@ function availabilityStrip(m) {
   return html`<div class="bars static" style="--n:${m.history.length}">${items}</div>`;
 }
 
+// One screen that answers "is this monitor OK right now?". Settings are in the
+// drawer subtitle and on /manage; per-check detail is in the Check tab.
 function renderOverview() {
   const pane = $('#pane-overview');
   const v = viewsById.get(drawer.monitor);
   if (!v) { patch(pane, html`<p class="muted">This monitor is no longer configured.</p>`); return; }
-  const {m, done, top, active} = v;
+  const {m, done, active} = v;
   const measured = m.metrics.responded + m.metrics.failed;
-  const outcomes = Object.entries(m.metrics.outcomes).sort((a, b) => b[1] - a[1]);
-  const assessments = Object.entries(m.metrics.assessments).sort((a, b) => b[1] - a[1]);
-  const siblings = [...viewsById.values()].filter(o => o.m.provider === m.provider).sort((a, b) => a.name.localeCompare(b.name));
-  const providerProbes = siblings.reduce((acc, o) => [acc[0] + o.m.metrics.responded, acc[1] + o.m.metrics.responded + o.m.metrics.failed], [0, 0]);
+  const failures = Object.entries(m.metrics.outcomes).filter(([k]) => k !== 'responded').sort((a, b) => b[1] - a[1]);
+  const note = v.flag === 'changed' ? 'The configuration or checker changed since this result; a new check will replace it.'
+    : v.flag === 'stale' ? (data.worker_online ? 'This result is stale: the next check is overdue.' : 'This result is stale: the worker is offline.') : '';
+  const schedule = active ? 'checking now' : !m.enabled ? 'paused' : m.next_due ? html`next <span data-until="${m.next_due}"></span>` : 'queued';
   patch(pane, html`
     <div class="check-head">
       <div class="identity-line">${v.flag === 'changed' ? badge('changed') : badge(v.state)}${active ? html`<span class="activity"><span class="spinner" aria-hidden="true"></span>${active.completed_samples}/${active.planned_samples}</span>` : ''}</div>
-      ${done ? html`<button type="button" class="button small" data-goto="${done.id}">Open latest check →</button>` : ''}
+      ${done ? html`<button type="button" class="button small" data-goto="${done.id}">Latest check →</button>` : ''}
     </div>
-    ${done && modelNotServedHint(done) ? html`<p class="verdict-text">All recent probes returned HTTP 404.${modelNotServedHint(done)}</p>` : ''}
-    <dl class="facts overview-facts">
-      <div><dt>Closest match</dt><dd>${top ? html`<span class="mono">${top.model}</span> · ${percent(top.weight)}` : '—'}</dd></div>
-      ${top && top.model !== m.expected_model ? html`<div><dt>Expected model weight</dt><dd>${percent(done.expected_weight)}</dd></div>` : ''}
-      <div><dt>Last check</dt><dd>${done ? html`<span data-ago="${v.checkedAt}"></span>` : 'never'}</dd></div>
-      <div><dt>Next check</dt><dd>${active ? 'checking now' : !m.enabled ? 'paused' : m.next_due ? html`<span data-until="${m.next_due}"></span>` : 'queued'}</dd></div>
-      ${v.flag ? html`<div><dt>Note</dt><dd>${v.flag === 'changed' ? 'Configuration or checker changed since the last result' : data.worker_online ? 'Result is stale; check overdue' : 'Result is stale; worker offline'}</dd></div>` : ''}
-    </dl>
+    <p class="verdict-text">${done ? html`${explanation(done)}${modelNotServedHint(done)}` : 'No completed check yet.'}${note ? html` <strong>${note}</strong>` : ''}</p>
+    <p class="muted small overview-when">${done ? html`Checked <span data-ago="${v.checkedAt}"></span> · ` : ''}${schedule}</p>
 
     <section class="panel">
       <h3>Availability · ${WINDOW_LABEL[ui.window]}</h3>
-      <div class="kpi"><span class="kpi-value num">${measured ? percent(m.metrics.success_rate, m.metrics.success_rate === 1 ? 0 : 1) : '—'}</span>
-        <span class="muted">${measured ? `${m.metrics.responded} of ${measured} probes succeeded` : 'no measured probes in this period'}${m.metrics.unknown ? ` · ${m.metrics.unknown} monitoring gap${m.metrics.unknown === 1 ? '' : 's'}` : ''}</span></div>
+      <div class="kpi" title="Successful probes divided by probes with an observed provider outcome. Local runner failures are monitoring gaps, not outages.">
+        <span class="kpi-value num">${measured ? percent(m.metrics.success_rate, m.metrics.success_rate === 1 ? 0 : 1) : '—'}</span>
+        <span class="muted">${measured ? `${m.metrics.responded} of ${measured} probes succeeded` : 'no measured probes in this period'}</span></div>
       ${availabilityStrip(m)}
       ${timeAxis()}
-      ${outcomes.length ? html`<dl class="facts">${outcomes.map(([k, n]) => html`<div><dt>${OUTCOMES[k] ?? stateLabel(k)}</dt><dd class="num">${n}</dd></div>`)}</dl>` : ''}
-      <p class="help">Successful probes divided by probes with an observed provider outcome. Local runner failures are monitoring gaps, not outages.</p>
-    </section>
-
-    <section class="panel">
-      <h3>Monitor</h3>
-      <dl class="facts">
-        <div><dt>Requested model</dt><dd class="mono">${m.model}</dd></div>
-        <div><dt>Expected model</dt><dd class="mono">${m.expected_model}</dd></div>
-        <div><dt>Reasoning</dt><dd>${m.effort}</dd></div>
-        <div><dt>Interval</dt><dd>every ${intervalLabel(m.interval)}</dd></div>
-        <div><dt>Channel</dt><dd>${m.channel}</dd></div>
-        <div><dt>Status</dt><dd>${m.enabled ? 'Active' : 'Paused'}</dd></div>
-        <div><dt>Checks · ${ui.window}</dt><dd>${assessments.length ? assessments.map(([k, n]) => `${n} ${stateLabel(k).toLowerCase()}`).join(', ') : 'none'}</dd></div>
-        <div><dt>Configuration</dt><dd class="mono">${m.revision}</dd></div>
-      </dl>
-    </section>
-
-    <section class="panel">
-      <h3>Provider · ${m.provider}</h3>
-      <dl class="facts">
-        <div><dt>Monitors</dt><dd>${siblings.length} (${siblings.filter(o => o.m.enabled).length} active)</dd></div>
-        <div><dt>Availability · ${ui.window}</dt><dd>${providerProbes[1] ? `${percent(providerProbes[0] / providerProbes[1], 1)} · ${providerProbes[0]}/${providerProbes[1]} probes` : '—'}</dd></div>
-      </dl>
-      <ul class="sibling-list" role="list">${siblings.map(o => html`<li><button type="button" class="history-entry" data-open="${o.m.id}" aria-current="${o.m.id === m.id}">
-        ${o.flag === 'changed' ? badge('changed') : badge(o.state)}
-        <span class="history-closest"><span class="mono">${o.m.model}</span>${o.m.channel !== 'Standard' ? html` <span class="tag">${o.m.channel}</span>` : ''}</span>
-        <span class="muted small">${o.m.effort}</span></button></li>`)}</ul>
+      ${failures.length ? html`<p class="muted small failure-line">Failures: ${failures.map(([k, n]) => `${(OUTCOMES[k] ?? stateLabel(k)).toLowerCase()} (${n})`).join(' · ')}</p>` : ''}
     </section>`);
   tickRelative(pane);
 }
