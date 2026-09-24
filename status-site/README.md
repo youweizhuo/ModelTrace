@@ -71,10 +71,11 @@ models' pause settings. Resuming a model queues a fresh check when its provider
 is enabled. A pause lets the current probe finish, then stops the remaining
 samples and confirmation batches.
 
-Each model row shows its latest identity result (linked to the evidence on the
-status page) and live activity: Queued, then Checking with the completed probe
-count and a progress bar, then the latest completion or failure time and the next
-scheduled check. Activity updates every two seconds. Queue and run state survive
+Click a provider's name to show its configuration: the base URL and each
+model's expected model, reasoning, interval, and channel. Each model row shows
+its latest identity result (linked to the evidence on the status page) and live
+activity: Queued, then Checking with the completed probe count and a progress
+bar, then the latest completion or failure time and the next scheduled check. Activity updates every two seconds. Queue and run state survive
 a page reload; clicking while a check is already active does not schedule another
 batch. **Check all** queues every enabled model of a provider. An offline worker
 is shown explicitly in the header.

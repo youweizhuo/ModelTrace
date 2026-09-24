@@ -10,6 +10,7 @@ let activityError = null;
 let editing = null;
 let baseline = '';
 let query = '';
+const expanded = new Set();
 const submitting = new Set();
 const checkErrors = new Map();
 
@@ -102,32 +103,56 @@ function render() {
 }
 
 function providerCard(p) {
-  return html`<article class="provider-card" aria-labelledby="provider-${p.id}">
+  const open = expanded.has(p.id);
+  return html`<article class="provider-card${open ? ' is-open' : ''}" aria-labelledby="provider-${p.id}">
     <header class="provider-head">
-      <div>
-        <div class="provider-name"><h2 id="provider-${p.id}">${p.name}</h2>${p.enabled ? badge('ok', {label: 'Active', tone: 'good'}) : badge('paused')}</div>
-        <p class="provider-url"><span class="mono">${p.base_url}</span> · ${p.has_key ? 'key saved' : 'no key'}</p>
-      </div>
+      <h2 class="provider-title"><button type="button" class="provider-toggle" data-expand="${p.id}" data-key="expand:${p.id}" aria-expanded="${open}" aria-controls="config-${p.id}" title="${open ? 'Hide' : 'Show'} configuration">
+        <span class="chevron" aria-hidden="true"></span>
+        <span class="provider-name" id="provider-${p.id}">${p.name}</span>
+        ${p.enabled ? badge('ok', {label: 'Active', tone: 'good'}) : badge('paused')}
+        <span class="provider-count">${p.monitors.length} model${p.monitors.length === 1 ? '' : 's'}</span>
+      </button></h2>
       <div class="provider-actions">
         <button type="button" class="button small" data-check-all="${p.id}" data-key="check-all:${p.id}" ${p.enabled && p.monitors.some(m => m.enabled) ? '' : 'disabled'}>Check all</button>
         <button type="button" class="button small" data-edit="${p.id}" data-key="edit:${p.id}">Edit</button>
-        <button type="button" class="button small" data-provider-toggle="${p.id}" data-key="ptoggle:${p.id}">${p.enabled ? 'Pause provider' : 'Resume provider'}</button>
+        <button type="button" class="button quiet small" data-provider-toggle="${p.id}" data-key="ptoggle:${p.id}" aria-label="${p.enabled ? 'Pause' : 'Resume'} provider ${p.name}">${p.enabled ? 'Pause' : 'Resume'}</button>
       </div>
     </header>
+    <section class="provider-config" id="config-${p.id}" aria-label="${p.name} configuration" ${open ? '' : 'hidden'}>
+      <dl class="config-facts">
+        <div><dt>API base URL</dt><dd class="mono">${p.base_url}</dd></div>
+      </dl>
+      <div class="config-table" role="table" aria-label="Model configuration">
+        <div class="config-row config-head" role="row">
+          <span role="columnheader">Requested model</span><span role="columnheader">Expected model</span><span role="columnheader">Reasoning</span>
+          <span role="columnheader">Interval</span><span role="columnheader">Channel</span>
+        </div>
+        ${p.monitors.map(m => html`<div class="config-row" role="row">
+          <span role="cell" class="mono">${m.model}</span>
+          <span role="cell" data-label="Expected" class="mono${m.expected_model === m.model ? ' muted' : ''}">${m.expected_model === m.model ? 'Same' : m.expected_model}</span>
+          <span role="cell" data-label="Reasoning">${m.effort}</span>
+          <span role="cell" data-label="Interval" class="num">${intervalLabel(m.interval)}</span>
+          <span role="cell" data-label="Channel">${m.channel}</span>
+        </div>`)}
+      </div>
+    </section>
     <div class="model-head" aria-hidden="true">
-      <span>Model</span><span>Reasoning</span><span>Every</span><span>Identity</span><span>Activity</span><span></span>
+      <span>Model</span><span>Identity</span><span>Activity</span><span></span>
     </div>
     ${p.monitors.map(m => modelRow(p, m))}
   </article>`;
 }
 
 function modelRow(p, m) {
-  const name = `${p.name} / ${m.model}`;
-  const meta = [m.expected_model !== m.model ? `expects ${m.expected_model}` : null, m.channel !== 'Standard' ? m.channel : null].filter(Boolean).join(' · ');
+  // Full settings live in the configuration pane; only show what tells rows of the same model apart.
+  const twins = p.monitors.filter(x => x.model === m.model && x.id !== m.id);
+  const meta = [
+    m.channel !== 'Standard' || twins.length ? m.channel : null,
+    twins.some(x => x.channel === m.channel) ? m.effort : null,
+  ].filter(Boolean).join(' · ');
+  const name = `${p.name} / ${m.model}${meta ? ` (${meta})` : ''}`;
   return html`<div class="model-row${m.enabled && p.enabled ? '' : ' is-paused'}">
     <div class="m-model"><span class="mono">${m.model}</span>${meta ? html`<div class="sub">${meta}</div>` : ''}</div>
-    <div class="m-effort">${m.effort}</div>
-    <div class="m-every num">${intervalLabel(m.interval)}</div>
     <div class="m-identity" data-identity="${m.id}"></div>
     <div class="m-activity" data-activity="${m.id}" aria-live="polite"></div>
     <div class="m-actions">
@@ -252,7 +277,11 @@ document.addEventListener('click', async event => {
   const d = button.dataset;
   if ('add' in d || button.id === 'add-provider') openEditor(null);
   else if ('reload' in d) reload();
-  else if (d.edit) openEditor(providers.find(p => p.id === d.edit));
+  else if (d.expand) {
+    if (!expanded.delete(d.expand)) expanded.add(d.expand);
+    render();
+    applyActivity();
+  } else if (d.edit) openEditor(providers.find(p => p.id === d.edit));
   else if (d.providerToggle) {
     const p = providers.find(x => x.id === d.providerToggle);
     await withButton(button, p.enabled ? 'Pausing…' : 'Resuming…', async () => {
