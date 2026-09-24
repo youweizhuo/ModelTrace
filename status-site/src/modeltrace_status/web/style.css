@@ -215,7 +215,7 @@ main.page { padding-bottom: 8px; }
 .rows .row:first-child { border-top-color: transparent; }
 .row:hover { background: var(--surface-2); }
 /* The left bar is the latest identity result. */
-.row::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 0 3px 3px 0; background: var(--mark, transparent); }
+.row::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--mark, transparent); }
 .row.mark-good { --mark: var(--good); }
 .row.mark-bad { --mark: var(--bad); }
 .row.mark-info { --mark: var(--info); }
@@ -242,7 +242,6 @@ main.page { padding-bottom: 8px; }
 .identity-cell { display: flex; align-items: center; gap: 10px; }
 .identity-cell .score { flex: 1; min-width: 0; }
 .score { font-size: 12.5px; }
-.head-sep { margin: 0 6px; }
 .speed { display: grid; gap: 2px; }
 .speed-value { color: var(--tone, var(--fg)); font-weight: 600; }
 .speed-kpis { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 8px; }

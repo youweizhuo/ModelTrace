@@ -152,7 +152,7 @@ function renderHead() {
   const sortButton = (key, label) => html`<button type="button" class="sort" data-sort="${key}" data-key="sort:${key}" aria-pressed="${ui.sort === key}" aria-label="Sort by ${label}${ui.sort === key ? (ui.reverse ? ', reversed' : '') : ''}">${label}<span class="sort-mark" aria-hidden="true">${ui.sort === key ? (ui.reverse ? '↑' : '↓') : ''}</span></button>`;
   patch($('#table-head'), html`
     <div class="c-monitor">${sortButton('monitor', 'Monitor')}</div>
-    <div class="c-identity">${sortButton('severity', 'State')}<span class="head-sep" aria-hidden="true">·</span><span title="Average weight the fingerprint gave the expected model over scheduled checks in ${WINDOW_LABEL[ui.window]}">${sortButton('score', 'Score')}</span></div>
+    <div class="c-identity"><span title="Average weight the fingerprint gave the expected model over scheduled checks in ${WINDOW_LABEL[ui.window]}">${sortButton('score', 'Score')}</span></div>
     <div class="c-closest"><span class="head-label">Closest match</span></div>
     <div class="c-speed" title="Latest check: time to first token and answer decode rate. Colored against checks of the same model and reasoning in this window."><span class="head-label">Speed</span></div>
     <div class="c-history" title="History · ${WINDOW_LABEL[ui.window]}">${timeAxis()}</div>
