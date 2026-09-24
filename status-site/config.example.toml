@@ -20,7 +20,7 @@ base_url = "http://127.0.0.1:18082/v1"
 key_env = "MODELTRACE_EXAMPLE_KEY"
 model = "gpt-6-astra"
 expected_model = "gpt-6-astra"
-effort = "high"
+effort = "medium"
 interval = 3600
 
 [[monitors]]
@@ -30,5 +30,5 @@ base_url = "http://127.0.0.1:18082/v1"
 key_env = "MODELTRACE_EXAMPLE_KEY"
 model = "gpt-6-sol"
 expected_model = "gpt-6-sol"
-effort = "high"
+effort = "medium"
 interval = 3600

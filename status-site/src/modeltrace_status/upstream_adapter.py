@@ -13,6 +13,16 @@ import subprocess
 from pathlib import Path
 
 POLICY = "guard-thresholds-v1-batch3"
+# Fields that determine how a check is scored. The upstream Git revision is
+# provenance only: commits that leave scorer and bank untouched keep the method.
+METHOD_KEYS = ("scorer_sha256", "bank_sha256", "policy", "probe_profile")
+
+
+def method_version(provenance):
+    fields = {k: provenance[k] for k in METHOD_KEYS if k in provenance}
+    if len(fields) != len(METHOD_KEYS):
+        return None
+    return hashlib.sha256(str(sorted(fields.items())).encode()).hexdigest()[:16]
 
 
 class UpstreamAdapter:
@@ -40,7 +50,7 @@ class UpstreamAdapter:
             "policy": POLICY,
             "probe_profile": "upstream-python-challenges/codex-fresh-v1",
         }
-        self.version = hashlib.sha256(str(sorted(self.provenance.items())).encode()).hexdigest()[:16]
+        self.version = method_version(self.provenance)
 
     def plan(self):
         plan = self.module.generate_challenges(3)

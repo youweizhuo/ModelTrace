@@ -361,7 +361,7 @@ function addModel(model = {}) {
   const field = name => item.querySelector(`[data-field="${name}"]`);
   field('model').value = model.model ?? '';
   field('expected_model').value = model.expected_model && model.expected_model !== model.model ? model.expected_model : '';
-  field('effort').value = model.effort ?? 'high';
+  field('effort').value = model.effort ?? 'medium';
   field('interval').value = Math.round((model.interval ?? 3600) / 60);
   field('channel').value = model.channel ?? 'Standard';
   field('enabled').checked = model.enabled === undefined ? true : Boolean(model.enabled);
@@ -493,7 +493,7 @@ $('#editor').addEventListener('close', () => {
   editing = null;
   baseline = '';
 });
-$('#add-model').addEventListener('click', () => addModel({effort: 'high'}).querySelector('[data-field="model"]').focus());
+$('#add-model').addEventListener('click', () => addModel({effort: 'medium'}).querySelector('[data-field="model"]').focus());
 
 form.addEventListener('submit', async event => {
   event.preventDefault();

@@ -87,8 +87,9 @@ instead of failing silently.
 
 Changes apply without restarting the service. In-flight probes may finish; the
 worker stops starting further probes when their configuration changes or their
-monitor is paused/removed. A changed credential, endpoint, expected model, or
-reasoning setting invalidates the *current* assessment until a new check completes.
+monitor is paused/removed. A changed credential, endpoint, requested/expected model
+or channel invalidates the *current* assessment until a new check completes.
+Changing the reasoning setting or interval keeps the current assessment.
 
 Management requires an authenticated, expiring session and CSRF token. There is
 no default password. Keys are never included in browser responses, query strings,
@@ -134,6 +135,8 @@ Thresholds are inherited heuristics, not newly calibrated accuracy guarantees.
 
 Each check records the scorer and bank hashes, upstream Git revision, probe
 profile, assessment policy, Codex version, and monitor configuration revision.
+The checker version is derived from the scorer and bank hashes, probe profile and
+policy only, so repository commits that leave those unchanged keep current results.
 Monitors appear in a dense table, one card per provider (or per expected model,
 or ungrouped): identity, closest reference model with its relative weight,
 history and last/next check. A check in progress is shown next to the last

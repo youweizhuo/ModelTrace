@@ -13,6 +13,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from .config import load_settings
 from .storage import Store
+from .upstream_adapter import method_version
 from .worker import FAILURES
 
 WINDOWS = {"24h": (86400, 24), "7d": (604800, 28), "30d": (2592000, 30)}
@@ -21,6 +22,10 @@ ASSETS = ("common.js", "status.js", "manage.js", "style.css", "icon.svg")
 
 def worker_online(heartbeat, now):
     return bool(heartbeat) and now - heartbeat.get("at", 0) < 45 and not heartbeat.get("stopped", False)
+
+
+def run_method(run):
+    return method_version(run.get("provenance", {})) or run["checker_version"]
 
 
 def finished(runs):
@@ -96,7 +101,7 @@ def snapshot(store, settings, window="24h", now=None):
         active = latest if online and latest and latest["state"] == "running" else None
         stale = bool(latest and (not online or now - latest["started_at"] > monitor.interval * 1.5 + settings.timeout))
         basis = done or latest
-        changed = bool(basis and (basis["monitor"]["revision"] != monitor.revision or basis["checker_version"] != checker.get("version")))
+        changed = bool(basis and (not monitor.same_basis(basis["monitor"]) or run_method(basis) != checker.get("version")))
         assessments = Counter()
         outcomes = Counter()
         scheduled = 0
@@ -120,8 +125,8 @@ def snapshot(store, settings, window="24h", now=None):
             bucket["latest_identity"] = identity
             bucket["latest_availability"] = run["availability"]
             bucket["summary"] = run_summary(run)
-            if run["checker_version"] not in bucket["versions"]:
-                bucket["versions"].append(run["checker_version"])
+            if run_method(run) not in bucket["versions"]:
+                bucket["versions"].append(run_method(run))
         good = outcomes["responded"]
         failed = sum(outcomes[key] for key in FAILURES)
         monitors.append(monitor.public() | {

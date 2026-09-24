@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 from .codex_runner import CodexRunner
 from .storage import Store
-from .upstream_adapter import UpstreamAdapter
+from .upstream_adapter import UpstreamAdapter, method_version
 
 log = logging.getLogger(__name__)
 FAILURES = {"provider_error", "auth_error", "rate_limit", "timeout"}
@@ -50,7 +50,7 @@ class Worker:
                                       "codex_version": self.runner.version, "error": self.adapter_error})
 
     def current(self, monitor):
-        return any(m.id == monitor.id and m.revision == monitor.revision for m, _, _ in self.store.targets())
+        return any(m.id == monitor.id and m.same_basis(monitor.public()) for m, _, _ in self.store.targets())
 
     def batch(self, monitor, credential, kind="scheduled", parent=None):
         adapter = self.adapter
@@ -123,8 +123,8 @@ class Worker:
         if run["state"] == "budget_exhausted":
             now = time.time()
             self.store.due_at(monitor.id, now - now % 86400 + 86400 + 1)
-        continuing = (previous and previous[0]["monitor"]["revision"] == monitor.revision
-                      and previous[0]["checker_version"] == run["checker_version"]
+        continuing = (previous and monitor.same_basis(previous[0]["monitor"])
+                      and method_version(previous[0]["provenance"]) == method_version(run["provenance"])
                       and previous[0]["identity"] in ("mismatch_signal", "repeated_mismatch")
                       and previous[0].get("candidates", [])[:1] and run.get("candidates", [])[:1]
                       and previous[0]["candidates"][0]["model"] == run["candidates"][0]["model"]

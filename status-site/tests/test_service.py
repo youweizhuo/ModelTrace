@@ -159,6 +159,16 @@ def test_configuration_change_and_worker_loss_invalidate_current_status(settings
     assert snapshot(store, settings)["monitors"][0]["stale"]
 
 
+def test_reasoning_effort_change_keeps_current_assessment(settings, store):
+    Worker(settings, store, FakeRunner(["match"] * 3), FakeAdapter()).check(*run_monitor(store))
+    provider = store.admin_providers()[0]
+    effort = "low" if provider["monitors"][0]["effort"] != "low" else "medium"
+    store.save_provider(provider | {"monitors": [provider["monitors"][0] | {"effort": effort}]}, provider["id"])
+    monitor = snapshot(store, settings)["monitors"][0]
+    assert monitor["effort"] == effort and monitor["latest_completed"]["identity"] == "consistent"
+    assert not monitor["configuration_changed"]
+
+
 def test_history_pagination_and_retention(settings, store):
     m, _ = run_monitor(store)
     run = store.create_run(m, "scheduled", "v1", {})

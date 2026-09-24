@@ -5,7 +5,7 @@ import json
 import os
 import re
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -19,13 +19,18 @@ class Monitor:
     base_url: str
     key_env: str
     channel: str = "Standard"
-    effort: str = "high"
+    effort: str = "medium"
     interval: int = 3600
 
     @property
     def revision(self):
         fields = {k: v for k, v in self.__dict__.items() if k != "interval"}
         return hashlib.sha256(json.dumps(fields, sort_keys=True).encode()).hexdigest()[:16]
+
+    def same_basis(self, recorded):
+        """Whether a run recorded under `recorded` (a public() dict) checked this configuration.
+        Interval and reasoning effort do not change the identity being assessed."""
+        return replace(self, effort=recorded.get("effort", self.effort)).revision == recorded.get("revision")
 
     def public(self):
         return {k: getattr(self, k) for k in ("id", "provider", "model", "expected_model", "channel", "effort", "interval")} | {"revision": self.revision}

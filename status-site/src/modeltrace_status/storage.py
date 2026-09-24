@@ -217,7 +217,7 @@ class Store:
             requested = str(model.get("model", "")).strip()
             expected = str(model.get("expected_model", requested)).strip()
             channel = str(model.get("channel", "Standard")).strip()
-            effort = model.get("effort", "high")
+            effort = model.get("effort", "medium")
             try:
                 interval = int(model.get("interval", 3600))
             except (TypeError, ValueError):

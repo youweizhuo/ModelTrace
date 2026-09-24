@@ -98,3 +98,11 @@ sys.exit(1)
     assert result["outcome"] == "rate_limit" and result["http_status"] == 429
     assert result["diagnostic"]["code"] == "concurrency_queue_timeout"
     assert "secret-sentinel" not in json.dumps(result)
+
+
+def test_checker_version_ignores_upstream_revision():
+    from modeltrace_status.upstream_adapter import method_version
+    method = {"scorer_sha256": "a", "bank_sha256": "b", "policy": "p", "probe_profile": "q"}
+    assert method_version(method | {"upstream_commit": "one"}) == method_version(method | {"upstream_commit": "two"})
+    assert method_version(method) != method_version(method | {"bank_sha256": "c"})
+    assert method_version({"upstream_commit": "one"}) is None
