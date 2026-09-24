@@ -152,7 +152,7 @@ function renderHead() {
   const sortButton = (key, label) => html`<button type="button" class="sort" data-sort="${key}" data-key="sort:${key}" aria-pressed="${ui.sort === key}" aria-label="Sort by ${label}${ui.sort === key ? (ui.reverse ? ', reversed' : '') : ''}">${label}<span class="sort-mark" aria-hidden="true">${ui.sort === key ? (ui.reverse ? '↑' : '↓') : ''}</span></button>`;
   patch($('#table-head'), html`
     <div class="c-monitor">${sortButton('monitor', 'Monitor')}</div>
-    <div class="c-identity">${sortButton('severity', 'Identity')}<span class="head-sep" aria-hidden="true">·</span><span title="Average weight the fingerprint gave the expected model over fully assessed scheduled checks in ${WINDOW_LABEL[ui.window]}">${sortButton('score', 'Score')}</span></div>
+    <div class="c-identity">${sortButton('severity', 'State')}<span class="head-sep" aria-hidden="true">·</span><span title="Average weight the fingerprint gave the expected model over scheduled checks in ${WINDOW_LABEL[ui.window]}">${sortButton('score', 'Score')}</span></div>
     <div class="c-closest"><span class="head-label">Closest match</span></div>
     <div class="c-speed" title="Latest check: time to first token and answer decode rate. Colored against checks of the same model and reasoning in this window."><span class="head-label">Speed</span></div>
     <div class="c-history" title="History · ${WINDOW_LABEL[ui.window]}">${timeAxis()}</div>
@@ -186,8 +186,8 @@ function renderRows(views) {
 const scoreTone = value => value >= .8 ? 'good' : value >= .5 ? 'warn' : 'bad';
 
 function scoreCell(score, subject) {
-  if (score?.value == null) return '';
-  const title = `${subject} ${score.checks} assessed check${score.checks === 1 ? '' : 's'} in ${WINDOW_LABEL[ui.window]}`;
+  if (score?.value == null) return html`<span class="muted">—</span>`;
+  const title = `${subject} ${score.checks} scored check${score.checks === 1 ? '' : 's'} in ${WINDOW_LABEL[ui.window]}`;
   return html`<div class="score tone-${scoreTone(score.value)}" title="${title}">
     <span class="num">${percent(score.value)}</span>
     ${meter(score.value)}
@@ -214,14 +214,16 @@ function row(v) {
   // Settings live in the drawer subtitle and on /manage; rows only carry what changes the reading.
   const meta = [m.channel !== 'Standard' ? m.channel : null,
     m.expected_model !== m.model ? `expects ${m.expected_model}` : null].filter(Boolean).join(' · ');
-  return html`<li class="row cat-${v.category}${m.enabled ? '' : ' is-paused'}">
+  const mark = m.enabled ? stateTone(v.current) : 'none';
+  const dim = m.enabled && v.flag === 'stale' ? ' is-stale' : '';
+  return html`<li class="row cat-${v.category} mark-${mark}${dim}${m.enabled ? '' : ' is-paused'}">
     <div class="c-monitor">
       <button type="button" class="monitor-link" data-open="${m.id}" data-key="open:${m.id}" aria-label="Details for ${v.name}">
         ${primary === null ? html`<span class="muted">${m.provider} /</span> <span class="mono">${m.model}</span>` : html`<span class="${ui.group === 'provider' ? 'mono' : ''}">${primary}</span>`}
       </button>
       ${meta ? html`<div class="sub">${meta}</div>` : ''}
     </div>
-    <div class="c-identity">${identityCell(v)}${scoreCell(v.m.score, `${v.m.expected_model} over`)}</div>
+    <div class="c-identity">${identityCell(v)}</div>
     <div class="c-closest">${closestCell(v)}</div>
     <div class="c-speed">${speedCell(v)}</div>
     <div class="c-history">${bars(v)}</div>
@@ -234,15 +236,16 @@ function row(v) {
 
 function identityCell(v) {
   const {m, done, active, flag, state} = v;
-  const notes = [];
+  const shown = flag === 'changed' ? 'changed' : state;
+  const notes = [stateLabel(shown)];
   if (flag === 'changed') notes.push(`Last result: ${stateLabel(state)}`);
   else if (flag === 'stale') notes.push(data.worker_online ? 'Stale: check overdue' : 'Stale: worker offline');
   else if (!m.enabled && done) notes.push(`Last result: ${stateLabel(done.state === 'completed' ? done.identity : done.state)}`);
   const failure = failureTitle(done);
   if (failure && ['unavailable', 'checker_error'].includes(state)) notes.push(failure);
-  const shown = flag === 'changed' ? badge('changed') : badge(state);
   const activity = active ? html`<span class="activity" title="Checking: ${active.completed_samples} of ${active.planned_samples} probes"><span class="spinner" aria-hidden="true"></span>${active.completed_samples}/${active.planned_samples}</span>` : '';
-  return html`<div class="identity-line${flag === 'stale' || !m.enabled ? ' faded' : ''}" title="${notes.join(' · ')}">${shown}${activity}</div>`;
+  // The state itself is the row's left bar; the cell carries it for hover and screen readers.
+  return html`<div class="identity-cell" title="${notes.join(' · ')}"><span class="visually-hidden">${stateLabel(shown)}. </span>${scoreCell(m.score, `${m.expected_model} over`)}${activity}</div>`;
 }
 
 function closestCell(v) {

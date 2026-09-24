@@ -488,13 +488,13 @@ def test_failed_requests_are_not_replaced(settings, store):
     assert store.history("one")[0]["availability"] == "partial"
 
 
-def test_identity_score_averages_expected_weight_over_full_scheduled_checks(settings, store):
+def test_identity_score_averages_expected_weight_over_scheduled_checks(settings, store):
     worker = Worker(settings, store, FakeRunner(["match"] * 3 + ["mismatch"] * 3 + ["match", "short", "short"]), FakeAdapter())
     for _ in range(3):
         worker.check(*run_monitor(store))
     score = snapshot(store, settings)["monitors"][0]["score"]
-    # The check with only one valid sample is left out.
-    assert score["checks"] == 2 and abs(score["value"] - .475) < 1e-9
+    # A check with a single valid sample still counts.
+    assert score["checks"] == 3 and abs(score["value"] - (.9 + .05 + .9) / 3) < 1e-9
 
 
 def test_editing_a_checked_model_does_not_queue_a_recheck(settings, store):

@@ -137,7 +137,7 @@ profile, assessment policy, Codex version, and monitor configuration revision.
 The checker version is derived from the scorer and bank hashes, probe profile and
 policy only, so repository commits that leave those unchanged keep current results.
 Monitors appear in a dense table, one card per provider (or per expected model,
-or ungrouped): identity with its score beneath, closest reference model with its relative weight
+or ungrouped): identity score (the row's left bar shows the latest result), closest reference model with its relative weight
 (from the latest check, with a meter colored by the identity result), speed,
 history and last/next check. A check in progress is shown next to the last
 completed result rather than replacing it. Rows can be filtered by state or text
@@ -172,8 +172,9 @@ moves into the fragment, because Safari can percent-encode the `#` of a followed
 link; a request for such an encoded path (`/%23monitor=…`) redirects to the fragment.
 
 The **identity score** is the average weight the fingerprint gave the expected
-model over the selected window's scheduled checks that had a full sample set;
-failed or short checks are left out because availability is reported separately.
+model over the selected window's scheduled checks, including inconclusive ones
+and those with fewer than three valid samples; checks with no scored response
+are left out because availability is reported separately.
 Group headers show the average of their models' scores (each model counts once),
 and rows can be sorted by score.
 

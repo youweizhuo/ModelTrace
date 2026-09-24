@@ -173,7 +173,7 @@ main.page { padding-bottom: 8px; }
 .banner-error { margin-bottom: 12px; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--bad) 40%, transparent); border-radius: 4px; background: var(--bad-soft); font-size: 13px; }
 
 /* ----------------------------------------------------------------- table */
-.table { --cols: minmax(160px, 1fr) 150px 210px 88px minmax(300px, 2.4fr) 88px; }
+.table { --cols: minmax(160px, 1fr) 120px 170px 88px minmax(320px, 2.6fr) 88px; }
 .table-head, .row {
   display: grid;
   grid-template-columns: var(--cols);
@@ -214,8 +214,14 @@ main.page { padding-bottom: 8px; }
 .row { position: relative; min-height: 58px; padding-top: 9px; padding-bottom: 9px; border-top: 1px solid var(--line); }
 .rows .row:first-child { border-top-color: transparent; }
 .row:hover { background: var(--surface-2); }
-.row.cat-mismatch::before, .row.cat-unavailable::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 0 3px 3px 0; background: var(--bad); }
-.row.cat-unavailable::before { background: repeating-linear-gradient(180deg, var(--bad) 0 3px, transparent 3px 6px); }
+/* The left bar is the latest identity result. */
+.row::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 0 3px 3px 0; background: var(--mark, transparent); }
+.row.mark-good { --mark: var(--good); }
+.row.mark-bad { --mark: var(--bad); }
+.row.mark-info { --mark: var(--info); }
+.row.mark-warn { --mark: var(--warn); }
+.row.mark-outage::before { background: repeating-linear-gradient(180deg, var(--bad) 0 3px, transparent 3px 6px); }
+.row.is-stale::before { opacity: .45; }
 .row.is-paused .c-monitor .monitor-link, .row.is-paused .c-closest { opacity: .6; }
 
 .monitor-link { max-width: 100%; padding: 0; border: 0; background: none; font-weight: 600; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
@@ -224,7 +230,8 @@ main.page { padding-bottom: 8px; }
 .identity-line.faded .badge { opacity: .78; }
 .activity { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .closest-line { display: flex; align-items: baseline; gap: 8px; }
-.closest-line .num { flex: none; font-size: 12.5px; }
+.c-closest { font-size: 12px; }
+.closest-line .num { flex: none; font-size: 11.5px; }
 .meter { height: 4px; margin-top: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
 .meter i { display: block; height: 100%; border-radius: 2px; background: var(--muted); }
 .cat-mismatch .c-closest .meter i { background: var(--bad); }
@@ -232,7 +239,9 @@ main.page { padding-bottom: 8px; }
 .cat-inconclusive .c-closest .meter i { background: var(--info); }
 .score .meter i { background: var(--tone); }
 .group-score { grid-column: 2; font-size: 12.5px; font-weight: 500; letter-spacing: 0; }
-.score { margin-top: 6px; font-size: 12.5px; }
+.identity-cell { display: flex; align-items: center; gap: 10px; }
+.identity-cell .score { flex: 1; min-width: 0; }
+.score { font-size: 12.5px; }
 .head-sep { margin: 0 6px; }
 .speed { display: grid; gap: 2px; }
 .speed-value { color: var(--tone, var(--fg)); font-weight: 600; }
@@ -439,7 +448,7 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
 
 /* ----------------------------------------------------------- responsive */
 @media (max-width: 1180px) {
-  .table { --cols: minmax(150px, 1fr) 150px 200px 84px 84px; }
+  .table { --cols: minmax(150px, 1fr) 120px 170px 84px 84px; }
   .table-head, .row {
     grid-template-areas: "mon id close speed check" "hist hist hist hist hist";
     row-gap: 8px;
@@ -472,7 +481,7 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
   }
   .c-identity { justify-self: end; text-align: right; }
   .c-identity .identity-line { justify-content: flex-end; }
-  .c-identity .score { width: 110px; margin-left: auto; }
+  .c-identity .identity-cell { width: 110px; margin-left: auto; }
   .c-checked { align-self: end; font-size: 12px; color: var(--muted); }
   .c-speed { justify-self: end; text-align: right; }
   .bars { height: 30px; }

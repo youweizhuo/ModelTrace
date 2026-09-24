@@ -41,9 +41,9 @@ def run_speed(run):
 
 
 def assessed(run):
-    """Scheduled checks with a full sample set; stored confirmation re-runs would double-count mismatches."""
-    return (run["kind"] == "scheduled" and run["state"] == "completed" and run.get("expected_weight") is not None
-            and run.get("valid_samples", 0) >= run.get("planned_samples", 3))
+    """Scheduled checks the scorer weighed, even on fewer than three samples; stored
+    confirmation re-runs would double-count mismatches."""
+    return run["kind"] == "scheduled" and run["state"] == "completed" and run.get("expected_weight") is not None
 
 
 def speed_tone(value, typical, higher_is_better=False):
