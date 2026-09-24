@@ -71,9 +71,9 @@ interrupted check; the next check follows the regular interval from the last one
 (or a full interval from now if that time has passed). Use Check to run one now. A pause lets the current probe finish, then stops the remaining
 samples.
 
-Click a provider's name to show its configuration: the base URL and each
-model's expected model, reasoning, interval, and channel. Each model row shows
-its latest identity result (linked to the evidence on the status page) and live
+Each provider header shows its API host. Under each model, a summary line shows
+reasoning and interval, plus channel and expected model when they're not the
+defaults. Each model row shows its latest identity result (linked to the evidence on the status page) and live
 activity: Queued, then Checking with the completed probe count and a progress
 bar, then when the last check finished and when the next is due. The last check's
 outcome is named only when it wasn't a clean finish (Partial, Failed, Stopped,
@@ -82,7 +82,9 @@ a page reload; clicking while a check is already active does not schedule anothe
 batch. **Check all** queues every enabled model of a provider. An offline worker
 is shown explicitly in the header.
 
-The editor validates fields before saving (URL scheme, credentials or query in the
+In the editor, each model takes one line (model, reasoning, interval); expected
+model, channel, and per-model pause sit under More options, which opens by itself
+when they differ from the defaults or fail validation. The editor validates fields before saving (URL scheme, credentials or query in the
 URL, intervals, duplicate model/channel/reasoning combinations) and asks before
 discarding unsaved changes. If the session expires, the page returns to sign-in
 instead of failing silently.

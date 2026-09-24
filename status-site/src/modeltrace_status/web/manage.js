@@ -10,7 +10,6 @@ let activityError = null;
 let editing = null;
 let baseline = '';
 let query = '';
-const expanded = new Set();
 const submitting = new Set();
 const checkErrors = new Map();
 
@@ -92,7 +91,7 @@ function render() {
     : 'No providers configured yet.';
   const list = visibleProviders();
   if (!providers.length) {
-    patch($('#providers'), html`<div class="empty provider-card"><p>Add a provider to start scheduled identity checks.</p><button type="button" class="button primary" data-add>+ Add provider</button></div>`);
+    patch($('#providers'), html`<div class="empty provider-card"><p>Add a provider to start scheduled identity checks.</p><button type="button" class="button primary" data-add>Add provider</button></div>`);
     return;
   }
   if (!list.length) {
@@ -102,57 +101,54 @@ function render() {
   patch($('#providers'), list.map(providerCard));
 }
 
+// The host and path are what tell providers apart; the scheme is noise.
+function hostLabel(url) {
+  try {
+    const u = new URL(url);
+    return u.host + u.pathname.replace(/\/$/, '');
+  } catch {
+    return url;
+  }
+}
+
 function providerCard(p) {
-  const open = expanded.has(p.id);
-  return html`<article class="provider-card${open ? ' is-open' : ''}" aria-labelledby="provider-${p.id}">
+  const checkable = p.enabled && p.monitors.some(m => m.enabled);
+  return html`<article class="provider-card${p.enabled ? '' : ' is-paused'}" aria-labelledby="provider-${p.id}">
     <header class="provider-head">
-      <h2 class="provider-title"><button type="button" class="provider-toggle" data-expand="${p.id}" data-key="expand:${p.id}" aria-expanded="${open}" aria-controls="config-${p.id}" title="${open ? 'Hide' : 'Show'} configuration">
-        <span class="chevron" aria-hidden="true"></span>
-        <span class="provider-name" id="provider-${p.id}">${p.name}</span>
+      <div class="provider-title">
+        <h2 class="provider-name" id="provider-${p.id}">${p.name}</h2>
+        <span class="provider-host mono truncate" title="${p.base_url}">${hostLabel(p.base_url)}</span>
         ${p.enabled ? '' : badge('paused')}
-      </button></h2>
+      </div>
       <div class="provider-actions">
-        <button type="button" class="button small" data-check-all="${p.id}" data-key="check-all:${p.id}" ${p.enabled && p.monitors.some(m => m.enabled) ? '' : 'disabled'}>Check all</button>
-        <button type="button" class="button small" data-edit="${p.id}" data-key="edit:${p.id}">Edit</button>
+        <button type="button" class="button quiet small" data-check-all="${p.id}" data-key="check-all:${p.id}" ${checkable ? '' : 'disabled'}>Check all</button>
         <button type="button" class="button quiet small" data-provider-toggle="${p.id}" data-key="ptoggle:${p.id}" aria-label="${p.enabled ? 'Pause' : 'Resume'} provider ${p.name}">${p.enabled ? 'Pause' : 'Resume'}</button>
+        <button type="button" class="button small" data-edit="${p.id}" data-key="edit:${p.id}" aria-label="Edit ${p.name}">Edit</button>
       </div>
     </header>
-    <section class="provider-config" id="config-${p.id}" aria-label="${p.name} configuration" ${open ? '' : 'hidden'}>
-      <dl class="config-facts">
-        <div><dt>API base URL</dt><dd class="mono">${p.base_url}</dd></div>
-      </dl>
-      <div class="config-table" role="table" aria-label="Model configuration">
-        <div class="config-row config-head" role="row">
-          <span role="columnheader">Requested model</span><span role="columnheader">Expected model</span><span role="columnheader">Reasoning</span>
-          <span role="columnheader">Interval</span><span role="columnheader">Channel</span>
-        </div>
-        ${p.monitors.map(m => html`<div class="config-row" role="row">
-          <span role="cell" class="mono">${m.model}</span>
-          <span role="cell" data-label="Expected" class="mono${m.expected_model === m.model ? ' muted' : ''}">${m.expected_model === m.model ? 'Same' : m.expected_model}</span>
-          <span role="cell" data-label="Reasoning">${m.effort}</span>
-          <span role="cell" data-label="Interval" class="num">${intervalLabel(m.interval)}</span>
-          <span role="cell" data-label="Channel">${m.channel}</span>
-        </div>`)}
-      </div>
-    </section>
     ${p.monitors.map(m => modelRow(p, m))}
   </article>`;
 }
 
 function modelRow(p, m) {
-  // Full settings live in the configuration pane; only show what tells rows of the same model apart.
+  // The accessible name only adds what tells rows of the same model apart.
   const twins = p.monitors.filter(x => x.model === m.model && x.id !== m.id);
   const meta = [
     m.channel !== 'Standard' || twins.length ? m.channel : null,
     twins.some(x => x.channel === m.channel) ? m.effort : null,
   ].filter(Boolean).join(' · ');
   const name = `${p.name} / ${m.model}${meta ? ` (${meta})` : ''}`;
+  const settings = [
+    m.effort, `every ${intervalLabel(m.interval)}`,
+    m.channel !== 'Standard' ? m.channel : null,
+    m.expected_model !== m.model ? `expects ${m.expected_model}` : null,
+  ].filter(Boolean).join(' · ');
   return html`<div class="model-row${m.enabled && p.enabled ? '' : ' is-paused'}">
-    <div class="m-model"><span class="mono">${m.model}</span>${meta ? html`<div class="sub">${meta}</div>` : ''}</div>
+    <div class="m-model"><span class="mono">${m.model}</span><div class="sub">${settings}</div></div>
     <div class="m-identity" data-identity="${m.id}"></div>
     <div class="m-activity" data-activity="${m.id}" aria-live="polite"></div>
     <div class="m-actions">
-      <button type="button" class="button small" data-check="${m.id}" data-name="${name}" data-key="check:${m.id}">Check</button>
+      <button type="button" class="button quiet small" data-check="${m.id}" data-name="${name}" data-key="check:${m.id}">Check</button>
       <button type="button" class="button quiet small" data-model-toggle="${m.id}" data-key="mtoggle:${m.id}" aria-label="${m.enabled ? 'Pause' : 'Resume'} ${name}">${m.enabled ? 'Pause' : 'Resume'}</button>
     </div>
   </div>`;
@@ -274,11 +270,7 @@ document.addEventListener('click', async event => {
   const d = button.dataset;
   if ('add' in d || button.id === 'add-provider') openEditor(null);
   else if ('reload' in d) reload();
-  else if (d.expand) {
-    if (!expanded.delete(d.expand)) expanded.add(d.expand);
-    render();
-    applyActivity();
-  } else if (d.edit) openEditor(providers.find(p => p.id === d.edit));
+  else if (d.edit) openEditor(providers.find(p => p.id === d.edit));
   else if (d.providerToggle) {
     const p = providers.find(x => x.id === d.providerToggle);
     await withButton(button, p.enabled ? 'Pausing…' : 'Resuming…', async () => {
@@ -362,25 +354,33 @@ function addModel(model = {}) {
   field('interval').value = Math.round((model.interval ?? 3600) / 60);
   field('channel').value = model.channel ?? 'Standard';
   field('enabled').checked = model.enabled === undefined ? true : Boolean(model.enabled);
+  // Keep non-default settings in view so nothing unusual hides behind the fold.
+  item.querySelector('details').open = Boolean(field('expected_model').value) || field('channel').value !== 'Standard';
   item.querySelector('[data-remove]').addEventListener('click', () => {
     item.remove();
-    updateModelTitles();
+    updateModels();
     editors.querySelector('[data-field="model"]')?.focus();
   });
-  field('model').addEventListener('input', updateModelTitles);
+  item.addEventListener('input', updateModels);
+  item.addEventListener('change', updateModels);
   editors.append(item);
-  updateModelTitles();
+  updateModels();
   return item;
 }
 
-function updateModelTitles() {
+function updateModels() {
   const items = [...editors.children];
   items.forEach((item, i) => {
-    const name = item.querySelector('[data-field="model"]').value.trim();
-    item.querySelector('[data-title]').textContent = `Model ${i + 1}${name ? ` · ${name}` : ''}`;
+    const get = name => item.querySelector(`[data-field="${name}"]`);
+    const name = get('model').value.trim();
     const remove = item.querySelector('[data-remove]');
     remove.disabled = items.length === 1;
-    remove.title = items.length === 1 ? 'A provider needs at least one model' : '';
+    remove.title = items.length === 1 ? 'A provider needs at least one model' : 'Remove model';
+    remove.setAttribute('aria-label', `Remove model ${i + 1}${name ? ` (${name})` : ''}`);
+    const expected = get('expected_model').value.trim(), channel = get('channel').value.trim();
+    const note = [expected && expected !== name ? `expects ${expected}` : null,
+      channel && channel !== 'Standard' ? channel : null, get('enabled').checked ? null : 'paused'].filter(Boolean).join(' · ');
+    item.querySelector('[data-note]').textContent = note ? ` · ${note}` : '';
   });
   $('#model-count').textContent = items.length ? `(${items.length})` : '';
   $('#add-model').disabled = items.length >= 30;
@@ -421,6 +421,7 @@ function validate() {
     input.setAttribute('aria-invalid', 'true');
     scope.querySelector(`[data-error="${key}"]`).textContent = message;
     input.closest('.model-editor')?.classList.add('is-invalid');
+    input.closest('details')?.setAttribute('open', '');
     first ??= input;
   };
   const el = form.elements;

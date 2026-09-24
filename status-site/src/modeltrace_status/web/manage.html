@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/assets/style.css">
   <script type="module" src="/assets/manage.js"></script>
 </head>
-<body>
+<body class="manage">
 <header class="topbar">
   <div class="topbar-inner">
     <a class="brand" href="/"><img src="/assets/icon.svg" alt="" width="22" height="22"><span>ModelTrace</span></a>
@@ -44,7 +44,7 @@
       <div class="actions">
         <label class="search"><span class="visually-hidden">Filter providers and models</span>
           <input id="search" type="search" placeholder="Filter…" autocomplete="off" spellcheck="false"></label>
-        <button id="add-provider" type="button" class="button primary">+ Add provider</button>
+        <button id="add-provider" type="button" class="button primary">Add provider</button>
       </div>
     </div>
     <div id="providers"><div class="skeleton-block"></div></div>
@@ -60,29 +60,28 @@
     <div class="drawer-body">
       <fieldset class="form-section">
         <legend>Connection</legend>
-        <div class="form-grid">
-          <label class="field"><span class="label">Provider name</span>
+        <div class="form-stack">
+          <label class="field"><span class="label">Name</span>
             <input name="name" maxlength="80" required autocomplete="off">
             <span class="field-error" data-error="name"></span></label>
-          <div class="field"><span class="label">Monitoring</span>
-            <label class="switch-field"><input name="enabled" type="checkbox" checked> Provider enabled</label></div>
-          <label class="field span-all"><span class="label">API base URL</span>
+          <label class="field"><span class="label">API base URL</span>
             <input name="base_url" type="url" inputmode="url" placeholder="https://gateway.example.com/v1" required autocomplete="off" spellcheck="false">
             <span class="hint">A Responses-compatible endpoint. Monitors sharing a host and port are checked one at a time.</span>
             <span class="field-error" data-error="base_url"></span></label>
-          <label class="field span-all"><span class="label">API key</span>
+          <label class="field"><span class="label">API key</span>
             <span class="input-group">
               <input name="api_key" type="password" autocomplete="new-password" spellcheck="false">
               <button type="button" class="button" data-reveal="api_key" aria-pressed="false">Show</button>
             </span>
             <span class="hint" id="key-hint"></span>
             <span class="field-error" data-error="api_key"></span></label>
+          <label class="switch-field"><input name="enabled" type="checkbox" checked> Monitor this provider</label>
         </div>
       </fieldset>
       <fieldset class="form-section">
         <legend>Models <span id="model-count" class="num"></span></legend>
         <div id="model-editors"></div>
-        <button id="add-model" type="button" class="button">+ Add model</button>
+        <button id="add-model" type="button" class="button add-row">Add model</button>
         <datalist id="reference-models"></datalist>
       </fieldset>
       <p id="save-error" class="form-error" role="alert"></p>
@@ -98,28 +97,34 @@
 
 <template id="model-template">
   <div class="model-editor">
-    <div class="model-editor-head"><span data-title>Model</span>
-      <button type="button" class="button danger-quiet small" data-remove>Remove</button></div>
-    <div class="form-grid">
-      <label class="field"><span class="label">Requested model</span>
+    <div class="model-main">
+      <label class="field f-model"><span class="label">Model</span>
         <input data-field="model" list="reference-models" required autocomplete="off" spellcheck="false">
         <span class="field-error" data-error="model"></span></label>
-      <label class="field"><span class="label">Expected model</span>
-        <input data-field="expected_model" list="reference-models" placeholder="Same as requested" autocomplete="off" spellcheck="false">
-        <span class="field-error" data-error="expected_model"></span></label>
-      <label class="field"><span class="label">Reasoning</span>
+      <label class="field f-effort"><span class="label">Reasoning</span>
         <select data-field="effort">
           <option>minimal</option><option>low</option><option>medium</option><option selected>high</option>
           <option>xhigh</option><option>max</option><option>ultra</option>
         </select></label>
-      <label class="field"><span class="label">Check every (minutes)</span>
-        <input data-field="interval" type="number" min="1" max="10080" step="1" inputmode="numeric" required>
+      <label class="field f-interval"><span class="label">Check every</span>
+        <span class="with-unit"><input data-field="interval" type="number" min="1" max="10080" step="1" inputmode="numeric" required><span class="muted" aria-hidden="true">min</span></span>
         <span class="field-error" data-error="interval"></span></label>
-      <label class="field"><span class="label">Channel label</span>
-        <input data-field="channel" maxlength="160" required autocomplete="off">
-        <span class="field-error" data-error="channel"></span></label>
-      <label class="switch-field"><input data-field="enabled" type="checkbox" checked> Enabled</label>
+      <button type="button" class="icon-button f-remove" data-remove>×</button>
     </div>
+    <details class="model-more">
+      <summary>More options<span class="more-note" data-note></span></summary>
+      <div class="form-grid">
+        <label class="field"><span class="label">Expected model</span>
+          <input data-field="expected_model" list="reference-models" placeholder="Same as requested" autocomplete="off" spellcheck="false">
+          <span class="hint">Only if the reply should come from a different model.</span>
+          <span class="field-error" data-error="expected_model"></span></label>
+        <label class="field"><span class="label">Channel label</span>
+          <input data-field="channel" maxlength="160" required autocomplete="off">
+          <span class="hint">Tells apart monitors of the same model.</span>
+          <span class="field-error" data-error="channel"></span></label>
+        <label class="switch-field span-all"><input data-field="enabled" type="checkbox" checked> Monitor this model</label>
+      </div>
+    </details>
   </div>
 </template>
 </body>
