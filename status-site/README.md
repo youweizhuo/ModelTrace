@@ -152,8 +152,11 @@ unavailable, so an outage is never confused with a mismatch. Empty periods are
 pale gray, and a tick above a bar marks a checker version change. The colours are
 validated for colour-vision deficiency; every state also has a text label.
 
-Hover or keyboard-focus a bar for a summary of that check: its state and closest
-match, plus the expected model's weight, valid samples or availability only when
+History periods start on the viewer's local hour (24h), 6-hour mark (7d) or day
+(30d), so a check stays in the same bar as time passes. Hover or keyboard-focus a
+bar for a summary of that check; a period with several checks lists them (up to
+the six most recent), and opening it shows a tab for each. A single check shows
+its state and closest match, plus the expected model's weight, valid samples or availability only when
 they are not routine. Each history strip is
 a single tab stop; use the arrow keys to move between periods. Click (or tap) a
 bar to open that check in the evidence drawer: a one-paragraph explanation, the

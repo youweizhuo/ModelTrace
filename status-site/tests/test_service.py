@@ -276,7 +276,7 @@ def test_pausing_during_a_probe_stops_remaining_samples(settings, store):
 
 def test_history_color_uses_latest_finished_result_and_keeps_earlier_checks(settings, store):
     monitor, _ = run_monitor(store)
-    now = time.time()
+    now = (time.time() // 3600 - 1) * 3600 + 1800  # mid-hour and in the past, so every record lands in the last period
     def record(age, identity, state="completed", availability="available"):
         run = store.create_run(monitor, "scheduled", "test", {})
         run.update(started_at=now-age, finished_at=None if state=="running" else now-age+1,
@@ -292,7 +292,7 @@ def test_history_color_uses_latest_finished_result_and_keeps_earlier_checks(sett
     assert bucket["latest_id"] == mismatch["id"]
     assert bucket["latest_identity"] == "mismatch_signal"
     assert bucket["latest_availability"] == "available"
-    assert bucket["counts"] == {"consistent": 1, "mismatch_signal": 1}
+    assert [c["identity"] for c in bucket["checks"]] == ["consistent", "mismatch_signal"]
     failure = record(5, "unknown", availability="unavailable")
     bucket = snapshot(store, settings, now=now)["monitors"][0]["history"][-1]
     assert bucket["latest_id"] == failure["id"] and bucket["latest_identity"] == "unknown"
@@ -378,7 +378,7 @@ def test_history_buckets_carry_public_tooltip_summaries(settings, store):
     Worker(settings, store, FakeRunner(["match"] * 3), FakeAdapter()).check(*run_monitor(store))
     response = create_app(settings).test_client().get("/api/status")
     bucket = response.json["monitors"][0]["history"][-1]
-    summary = bucket["summary"]
+    summary = bucket["checks"][-1]
     assert summary["id"] == bucket["latest_id"]
     assert summary["identity"] == "consistent" and summary["top"] == {"model": "gpt-6-astra", "weight": .9}
     assert summary["valid_samples"] == 3 and summary["failure"] is None
@@ -505,3 +505,19 @@ def test_editing_a_checked_model_does_not_queue_a_recheck(settings, store):
     due = {m.id: runtime["next_due"] for m, _, runtime in store.targets()}
     assert due.pop("one") > time.time() + 60
     assert list(due.values()) == [0]  # the new model still gets its first check
+
+
+def test_history_periods_start_on_the_local_hour_and_keep_recent_checks(settings, store):
+    monitor, _ = run_monitor(store)
+    now = (time.time() // 3600 - 1) * 3600 + 3000
+    for age in range(8):
+        run = store.create_run(monitor, "scheduled", "test", {})
+        run.update(started_at=now - 60 - age * 60, finished_at=now, state="completed", identity="consistent", availability="available")
+        with store.connect() as db:
+            db.execute("UPDATE runs SET started_at=? WHERE id=?", (run["started_at"], run["id"]))
+        store.save_run(run)
+    history = snapshot(store, settings, now=now, utc_offset=19800)["monitors"][0]["history"]  # UTC+5:30
+    assert all((b["start"] + 19800) % 3600 == 0 for b in history)
+    assert history[-1]["start"] <= now < history[-1]["end"]
+    last = next(b for b in reversed(history) if b["runs"])
+    assert last["runs"] == 8 and len(last["checks"]) == 6

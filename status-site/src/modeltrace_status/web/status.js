@@ -290,7 +290,7 @@ function bars(v) {
     if (b.versions.length) previous = b.versions.at(-1);
     const state = b.latest_id ? (b.latest_identity || 'unknown') : 'empty';
     const outage = b.latest_availability === 'unavailable';
-    const s = b.summary;
+    const s = b.checks.at(-1);
     const label = b.latest_id
       ? `${formatRange(b.start, b.end)}: ${stateLabel(state)}${outage ? ', API unavailable' : ''}${s?.top ? `, closest ${s.top.model} ${percent(s.top.weight)}` : ''}. ${b.runs} check${b.runs === 1 ? '' : 's'}.`
       : `${formatRange(b.start, b.end)}: no check recorded.`;
@@ -329,7 +329,7 @@ async function refresh() {
   inflight = controller;
   const requested = ui.window;
   try {
-    const result = await request(`/api/status?window=${requested}`, {signal: controller.signal, timeout: 20000});
+    const result = await request(`/api/status?window=${requested}&tz=${new Date().getTimezoneOffset()}`, {signal: controller.signal, timeout: 20000});
     if (requested !== ui.window) return;
     clock.sync(result.at);
     data = result;
@@ -375,9 +375,18 @@ function showTip(button) {
   const v = viewsById.get(button.dataset.monitor);
   const b = v?.m.history[Number(button.dataset.bar)];
   if (!b) return;
-  const s = b.summary;
-  const counts = Object.entries(b.counts);
-  tooltip.innerHTML = String(s ? html`
+  const s = b.checks.at(-1);
+  const earlier = b.runs - b.checks.length;
+  tooltip.innerHTML = String(b.checks.length > 1 ? html`
+    <div class="tip-time">${formatRange(b.start, b.end)} · ${b.runs} checks</div>
+    <ol class="tip-checks">${b.checks.toReversed().map(c => html`<li>
+      <span class="num muted">${formatTime(c.started_at)}</span>
+      <span class="history-state"><i class="dot tone-${stateTone(shownState(c))}" aria-hidden="true"></i>${stateLabel(shownState(c))}</span>
+      <span class="num">${c.top ? percent(c.top.weight) : '—'}</span>
+    </li>`)}</ol>
+    ${earlier ? html`<p class="tip-note">${earlier} earlier check${earlier === 1 ? '' : 's'} not shown.</p>` : ''}
+    <p class="tip-hint">Click to open these checks</p>`
+    : s ? html`
     <div class="tip-time">${formatRange(b.start, b.end)}</div>
     <div class="tip-state">${badge(shownState(s))}</div>
     <dl class="tip-facts">
@@ -388,7 +397,6 @@ function showTip(button) {
       ${s.availability !== 'available' ? html`<div><dt>Availability</dt><dd>${stateLabel(s.availability)}${s.http_status ? ` · HTTP ${s.http_status}` : ''}</dd></div>` : ''}
     </dl>
     ${s.failure ? html`<p class="tip-note">${s.failure}</p>` : ''}
-    ${b.runs > 1 ? html`<p class="tip-note">${b.runs} checks in period: ${counts.map(([k, n]) => `${n} ${stateLabel(k).toLowerCase()}`).join(', ')}</p>` : ''}
     ${b.versions.length > 1 ? html`<p class="tip-note">Checker changed during this period.</p>` : ''}
     <p class="tip-hint">Click for full evidence</p>`
     : html`<div class="tip-time">${formatRange(b.start, b.end)}</div><p class="tip-note">No check recorded in this period.</p>`);
@@ -605,6 +613,7 @@ function checkMarkup(run) {
         <button type="button" class="button small" data-goto="${newer?.id ?? ''}" ${newer ? '' : 'disabled'} aria-label="Newer check">Newer →</button>
       </div>
     </div>
+    ${slotTabs(run)}
     <p class="verdict-text">${explanation(run)}</p>
     <section class="panel">
       <h3 title="Weights are relative within the reference library; they aren’t probabilities of authenticity.">Fingerprint candidates</h3>
@@ -629,6 +638,16 @@ function checkMarkup(run) {
         <div><dt>Checker</dt><dd class="mono">${run.checker_version}</dd></div>
       </dl>
     </details>`;
+}
+
+// Checks sharing this one's history period, so a busy hour stays reachable from its bar.
+function slotTabs(run) {
+  const bucket = viewsById.get(run.monitor_id)?.m.history.find(b => b.checks.some(c => c.id === run.id));
+  if (!bucket || bucket.checks.length < 2) return '';
+  return html`<div class="slot-tabs" role="group" aria-label="Checks ${formatRange(bucket.start, bucket.end)}">
+    <span class="muted small">${formatRange(bucket.start, bucket.end)}</span>
+    ${bucket.checks.map(c => html`<button type="button" class="slot-tab" data-goto="${c.id}" aria-current="${c.id === run.id}"><i class="dot tone-${stateTone(shownState(c))}" aria-hidden="true"></i>${formatTime(c.started_at)}</button>`)}
+  </div>`;
 }
 
 const SOURCES = {

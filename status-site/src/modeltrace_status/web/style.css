@@ -281,6 +281,14 @@ main.page { padding-bottom: 8px; }
 .tip-facts > div { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
 .tip-facts dt { color: var(--muted); }
 .tip-facts dd { text-align: right; overflow-wrap: anywhere; }
+.tip-checks { margin: 8px 0 0; padding: 0; list-style: none; }
+.tip-checks li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 3px 0; }
+.tip-checks li + li { border-top: 1px solid var(--line); }
+.slot-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+.slot-tabs .muted { margin-right: 4px; }
+.slot-tab { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border: 1px solid var(--line-strong); border-radius: 4px; background: none; font-size: 12.5px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.slot-tab:hover { background: var(--hover); }
+.slot-tab[aria-current="true"] { border-color: var(--fg); background: var(--pressed); font-weight: 600; }
 .tip-note { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 .tip-hint { margin-top: 8px; color: var(--muted); font-size: 11.5px; }
 

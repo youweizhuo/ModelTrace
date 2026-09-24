@@ -106,10 +106,17 @@ def secret_file(path, generate):
     return value
 
 
-def snapshot(store, settings, window="24h", now=None):
+BUCKET_CHECKS = 6  # most recent checks kept per history period
+
+
+def snapshot(store, settings, window="24h", now=None, utc_offset=0):
+    """utc_offset is the viewer's local time minus UTC, in seconds, so periods
+    start on their local hour (or day) and don't shift as time passes."""
     now = now or time.time()
     seconds, count = WINDOWS[window]
-    since = now - seconds
+    slot = seconds / count
+    end = ((now + utc_offset) // slot + 1) * slot - utc_offset
+    since = end - seconds
     heartbeat = store.meta("heartbeat", {})
     online = worker_online(heartbeat, now)
     checker = store.meta("checker", {})
@@ -130,8 +137,8 @@ def snapshot(store, settings, window="24h", now=None):
         scheduled = 0
         weights = []
         buckets = [{"start": since + i * seconds / count, "end": since + (i + 1) * seconds / count,
-                    "counts": {}, "runs": 0, "scheduled": 0, "latest_id": None,
-                    "latest_identity": None, "latest_availability": None, "summary": None, "versions": []} for i in range(count)]
+                    "runs": 0, "latest_id": None,
+                    "latest_identity": None, "latest_availability": None, "checks": [], "versions": []} for i in range(count)]
         for run in reversed(rows):
             if run["state"] == "running":
                 continue
@@ -143,13 +150,11 @@ def snapshot(store, settings, window="24h", now=None):
                 weights.append(run["expected_weight"])
             i = min(count - 1, max(0, int((run["started_at"] - since) / seconds * count)))
             bucket = buckets[i]
-            bucket["counts"][identity] = bucket["counts"].get(identity, 0) + 1
             bucket["runs"] += 1
-            bucket["scheduled"] += run["kind"] == "scheduled"
             bucket["latest_id"] = run["id"]
             bucket["latest_identity"] = identity
             bucket["latest_availability"] = run["availability"]
-            bucket["summary"] = run_summary(run)
+            bucket["checks"] = bucket["checks"][1 - BUCKET_CHECKS:] + [run_summary(run)]
             for key, value in run_speed(run).items():
                 if value is not None:
                     peers[(monitor.expected_model, monitor.effort)][key].append(value)
@@ -255,9 +260,13 @@ def create_app(settings=None):
     @app.get("/api/status")
     def status():
         window = request.args.get("window", "24h")
-        if window not in WINDOWS:
+        try:
+            offset = int(request.args.get("tz", 0))  # JavaScript getTimezoneOffset(): UTC minus local, in minutes
+        except ValueError:
             abort(400)
-        return jsonify(snapshot(store, settings, window))
+        if window not in WINDOWS or abs(offset) > 900:
+            abort(400)
+        return jsonify(snapshot(store, settings, window, utc_offset=-offset * 60))
 
     @app.get("/api/runs/<rid>")
     def get_run(rid):
