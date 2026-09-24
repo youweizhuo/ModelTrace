@@ -221,7 +221,8 @@ function closestCell(v) {
   const {top, m} = v;
   if (!top) return html`<span class="muted">—</span>`;
   const same = top.model === m.expected_model;
-  return html`<div class="closest-line${same ? ' is-expected' : ''}"><span class="mono truncate" title="${top.model}${same ? ' (expected model)' : ''}">${top.model}</span><span class="num">${percent(top.weight)}</span></div>`;
+  return html`<div class="closest-line${same ? ' is-expected' : ''}"><span class="mono truncate" title="${top.model}${same ? ' (expected model)' : ''}">${top.model}</span><span class="num">${percent(top.weight)}</span></div>
+    <div class="meter" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, top.weight * 100)).toFixed(1)}%"></i></div>`;
 }
 
 function bars(v) {

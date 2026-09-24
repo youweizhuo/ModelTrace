@@ -140,7 +140,8 @@ profile, assessment policy, Codex version, and monitor configuration revision.
 The checker version is derived from the scorer and bank hashes, probe profile and
 policy only, so repository commits that leave those unchanged keep current results.
 Monitors appear in a dense table, one card per provider (or per expected model,
-or ungrouped): identity, closest reference model with its relative weight,
+or ungrouped): identity, closest reference model with its relative weight
+(from the latest check, with a meter colored by the identity result),
 history and last/next check. A check in progress is shown next to the last
 completed result rather than replacing it. Rows can be filtered by state or text
 and sorted by severity, name or last check. A banner appears only when the worker

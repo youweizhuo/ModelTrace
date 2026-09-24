@@ -222,9 +222,12 @@ main.page { padding-bottom: 8px; }
 .identity-line.faded .badge { opacity: .78; }
 .activity { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .closest-line { display: flex; align-items: baseline; gap: 8px; }
-.closest-line .num { margin-left: auto; font-size: 12.5px; }
+.closest-line .num { flex: none; font-size: 12.5px; }
 .meter { height: 4px; margin-top: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
 .meter i { display: block; height: 100%; border-radius: 2px; background: var(--muted); }
+.cat-mismatch .c-closest .meter i { background: var(--bad); }
+.cat-consistent .c-closest .meter i { background: var(--good); }
+.cat-inconclusive .c-closest .meter i { background: var(--info); }
 
 /* -------------------------------------------------------------- history */
 .bars { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 2px; height: 26px; margin-top: 5px; margin-bottom: 1px; }
