@@ -1,0 +1,196 @@
+<div id="mt-status-concept" aria-label="ModelTrace status page design">
+  <style>
+    #mt-status-concept { --mt-bg:light-dark(#ffffff,#17191b); --mt-fg:light-dark(#202426,#edf0f1); --mt-muted:light-dark(#626b70,#a7afb3); --mt-line:light-dark(#e5e8e9,#353b3e); --mt-soft:light-dark(#f5f7f7,#212528); --mt-good:light-dark(#25815e,#65cba0); --mt-warn:light-dark(#b37b15,#efc15d); --mt-bad:light-dark(#c7544e,#eb8981); --mt-none:light-dark(#c8cdd0,#61696e); --mt-selected:light-dark(#24292c,#e2e8eb); --mt-selected-text:light-dark(#ffffff,#1d2427); font:14px/1.5 system-ui,sans-serif; color:var(--mt-fg); background:var(--mt-bg); padding:24px; box-sizing:border-box; }
+    #mt-status-concept * { box-sizing:border-box; }
+    #mt-status-concept button { font:inherit; color:inherit; }
+    #mt-status-concept .mt-top, #mt-status-concept .mt-toolbar, #mt-status-concept .mt-group-head, #mt-status-concept .mt-legend, #mt-status-concept .mt-footer { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    #mt-status-concept .mt-top { padding-bottom:22px; border-bottom:1px solid var(--mt-line); }
+    #mt-status-concept .mt-brand { display:flex; gap:10px; align-items:center; font-weight:500; }
+    #mt-status-concept .mt-mark { background:var(--mt-selected); color:var(--mt-selected-text); padding:6px 8px; border-radius:7px; font-size:12px; }
+    #mt-status-concept .mt-muted { color:var(--mt-muted); }
+    #mt-status-concept .mt-small { font-size:12px; }
+    #mt-status-concept h1 { font-size:26px; font-weight:500; line-height:1.25; margin:23px 0 8px; }
+    #mt-status-concept h2 { font-size:16px; font-weight:500; margin:0; }
+    #mt-status-concept p { margin:0; }
+    #mt-status-concept .mt-notice { margin-top:20px; display:flex; gap:10px; align-items:flex-start; padding:13px 15px; background:var(--mt-soft); border-radius:8px; }
+    #mt-status-concept .mt-alert-dot { flex:none; width:8px; height:8px; border-radius:50%; background:var(--mt-bad); margin-top:7px; }
+    #mt-status-concept .mt-toolbar { margin:26px 0 22px; }
+    #mt-status-concept .mt-switch { display:flex; align-items:center; gap:4px; padding:3px; background:var(--mt-soft); border-radius:8px; }
+    #mt-status-concept .mt-switch button { border:0; background:transparent; padding:7px 11px; border-radius:6px; }
+    #mt-status-concept .mt-switch button[aria-pressed="true"] { color:var(--mt-selected-text); background:var(--mt-selected); }
+    #mt-status-concept .mt-group { margin-bottom:28px; }
+    #mt-status-concept .mt-group-head { padding-bottom:10px; border-bottom:1px solid var(--mt-line); }
+    #mt-status-concept .mt-row { padding:18px 0; border-bottom:1px solid var(--mt-line); }
+    #mt-status-concept[data-density="compact"] .mt-row { padding:11px 0; }
+    #mt-status-concept .mt-row summary { list-style:none; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,0.8fr); align-items:start; gap:18px; }
+    #mt-status-concept .mt-row summary::-webkit-details-marker { display:none; }
+    #mt-status-concept .mt-row summary>div { min-width:0; overflow-wrap:anywhere; }
+    #mt-status-concept .mt-model { font-weight:500; }
+    #mt-status-concept .mt-state { display:flex; gap:7px; align-items:center; font-weight:500; }
+    #mt-status-concept .mt-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--mt-none); flex:none; }
+    #mt-status-concept .mt-dot.good { background:var(--mt-good); }
+    #mt-status-concept .mt-dot.bad { background:var(--mt-bad); }
+    #mt-status-concept .mt-dot.warn { background:var(--mt-warn); }
+    #mt-status-concept .mt-secondary { margin-top:3px; color:var(--mt-muted); font-size:12px; }
+    #mt-status-concept .mt-availability { text-align:right; }
+    #mt-status-concept .mt-availability .mt-state { justify-content:flex-end; font-weight:400; }
+    #mt-status-concept .mt-history { display:grid; grid-template-columns:repeat(24,minmax(0,1fr)); gap:3px; margin-top:3px; }
+    #mt-status-concept .mt-history button { padding:10px 0; border:0; min-width:0; background:transparent; }
+    #mt-status-concept .mt-hour { display:block; height:15px; border-radius:2px; background:var(--mt-good); }
+    #mt-status-concept .mt-hour.bad { background:var(--mt-bad); }
+    #mt-status-concept .mt-hour.warn { background:var(--mt-warn); }
+    #mt-status-concept .mt-hour.none { background:var(--mt-none); }
+    #mt-status-concept .mt-history-label { display:flex; justify-content:space-between; gap:10px; color:var(--mt-muted); font-size:11px; margin-top:5px; }
+    #mt-status-concept .mt-history-wrap { margin:0 0 6px; }
+    #mt-status-concept .mt-details { background:var(--mt-soft); border-radius:8px; padding:16px; margin:14px 0 0; }
+    #mt-status-concept .mt-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+    #mt-status-concept .mt-detail-title { font-size:12px; font-weight:500; margin-bottom:9px; }
+    #mt-status-concept .mt-score-line { display:flex; justify-content:space-between; gap:10px; margin:7px 0 3px; font-size:12px; }
+    #mt-status-concept .mt-score-track { height:5px; border-radius:3px; background:var(--mt-line); overflow:hidden; }
+    #mt-status-concept .mt-score-fill { height:100%; background:var(--mt-muted); }
+    #mt-status-concept .mt-facts { margin:0; font-size:12px; }
+    #mt-status-concept .mt-facts div { display:flex; justify-content:space-between; gap:14px; padding:4px 0; }
+    #mt-status-concept dt { color:var(--mt-muted); }
+    #mt-status-concept dd { margin:0; text-align:right; }
+    #mt-status-concept .mt-note { color:var(--mt-muted); margin-top:12px; font-size:12px; }
+    #mt-status-concept .mt-legend { justify-content:flex-start; gap:10px 18px; font-size:12px; color:var(--mt-muted); }
+    #mt-status-concept .mt-legend span { display:flex; align-items:center; gap:6px; }
+    #mt-status-concept .mt-footer { border-top:1px solid var(--mt-line); padding-top:17px; margin-top:22px; font-size:12px; color:var(--mt-muted); }
+    #mt-status-concept .mt-hint { margin-top:6px; color:var(--mt-muted); font-size:11px; }
+    #mt-status-concept[data-availability="details"] .mt-availability { display:none; }
+    #mt-status-concept[data-availability="details"] .mt-row summary { grid-template-columns:1fr 1.25fr; }
+    #mt-status-concept .mt-caption { margin-top:8px; color:var(--mt-muted); font-size:11px; }
+    #mt-status-concept .mt-touch-history, #mt-status-concept .mt-check-picker { display:none; }
+    #mt-status-concept .mt-check-picker { align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; font-size:12px; }
+    #mt-status-concept .mt-check-picker select { font:inherit; font-size:16px; min-height:44px; width:100%; padding:6px; color:var(--mt-fg); background:var(--mt-bg); border:1px solid var(--mt-line); border-radius:6px; }
+    @media(max-width:560px) {
+      #mt-status-concept { padding:16px; }
+      #mt-status-concept .mt-row summary { grid-template-columns:minmax(0,1fr) minmax(0,1.2fr); gap:10px; }
+      #mt-status-concept .mt-availability { grid-column:1/-1; text-align:left; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+      #mt-status-concept .mt-availability .mt-state { justify-content:flex-start; }
+      #mt-status-concept .mt-detail-grid { grid-template-columns:1fr; gap:18px; }
+      #mt-status-concept h1 { font-size:23px; }
+    }
+    @media(pointer:coarse) { #mt-status-concept .mt-switch button { min-height:44px; } #mt-status-concept .mt-row summary { min-height:44px; } #mt-status-concept .mt-history { display:none; } #mt-status-concept .mt-touch-history { display:grid; grid-template-columns:repeat(24,minmax(0,1fr)); gap:3px; margin-top:13px; } #mt-status-concept .mt-check-picker { display:flex; } }
+  </style>
+  <header class="mt-top">
+    <div class="mt-brand"><span class="mt-mark">MT</span><span>ModelTrace <span class="mt-muted">Status</span></span></div>
+    <span class="mt-small mt-muted">Design preview · illustrative data</span>
+  </header>
+  <h1>Which model is answering?</h1>
+  <p class="mt-muted">Fingerprint checks across your API providers.</p>
+  <div class="mt-notice"><span class="mt-alert-dot" aria-hidden="true"></span><div><span>1 repeated mismatch signal</span><p class="mt-small mt-muted">4 monitors · 1 inconclusive · 1 currently unavailable</p></div></div>
+  <div class="mt-toolbar">
+    <div class="mt-switch" role="group" aria-label="Group monitors">
+      <button type="button" class="cursor-interaction" data-group="provider" aria-pressed="true">By provider</button>
+      <button type="button" class="cursor-interaction" data-group="model" aria-pressed="false">By model</button>
+    </div>
+    <span class="mt-small mt-muted">Identity history · last 24 hours</span>
+  </div>
+  <div id="mt-status-groups"></div>
+  <div class="mt-legend" aria-label="Identity history legend">
+    <span><i class="mt-dot good" aria-hidden="true"></i>Consistent</span>
+    <span><i class="mt-dot bad" aria-hidden="true"></i>Mismatch signal</span>
+    <span><i class="mt-dot warn" aria-hidden="true"></i>Inconclusive</span>
+    <span><i class="mt-dot" aria-hidden="true"></i>No identity result</span>
+  </div>
+  <footer class="mt-footer"><span>Identity evidence from the reference library</span><span>Hourly checks · three probes per run</span></footer>
+  <script>
+    (() => {
+      const root = document.getElementById('mt-status-concept');
+      const groupsEl = root.querySelector('#mt-status-groups');
+      const monitors = [
+        {id:'alpha-x',provider:'Provider Alpha',model:'Model X',state:'Consistent',kind:'good',closest:'Model X',detail:'Last checked 4 minutes ago',availability:'Available',availKind:'good',success:72,total:72,valid:'3 / 3',batch:'24 / 24',duration:'16.2 s',tokens:'1,280',scores:[['Model X',88],['Model Y',8],['Other candidates',4]],history:Array(24).fill('good'),note:'Latest fingerprint favors the expected model within the current reference library.'},
+        {id:'alpha-y',provider:'Provider Alpha',model:'Model Y',state:'Mismatch signal',kind:'bad',closest:'Model X',detail:'Repeated in 3 batches · 6 min ago',availability:'Available',availKind:'good',success:78,total:78,valid:'3 / 3',batch:'24 / 24',duration:'14.9 s',tokens:'1,264',scores:[['Model X',87],['Model Y · expected',9],['Other candidates',4]],history:[...Array(17).fill('good'),'warn',...Array(6).fill('bad')],note:'The initial mismatch appeared again in two confirmation batches. API responses still completed successfully.'},
+        {id:'beta-x',provider:'Provider Beta',model:'Model X',state:'Inconclusive',kind:'warn',closest:'Model X / Model Y',detail:'Candidates too close · 3 min ago',availability:'Available',availKind:'good',success:72,total:72,valid:'3 / 3',batch:'24 / 24',duration:'18.4 s',tokens:'1,312',scores:[['Model X · expected',46],['Model Y',44],['Other candidates',10]],history:[...Array(9).fill('good'),'warn','good','warn','warn','good','good','good',...Array(8).fill('warn')],note:'The leading candidates are too close for a useful identity assessment. All scheduled runs produced valid samples.'},
+        {id:'beta-y',provider:'Provider Beta',model:'Model Y',state:'No current result',kind:'none',closest:null,detail:'Last valid identity: Model Y · 3 h ago',availability:'Unavailable',availKind:'bad',success:63,total:72,valid:'0 / 3',batch:'21 / 24',duration:'Timed out',tokens:'Not available',scores:[],history:[...Array(21).fill('good'),...Array(3).fill('none')],note:'Recent probes timed out. The previous identity assessment is historical; the current identity remains unknown.'}
+      ];
+      const state = { grouping:'provider',density:'comfortable',availability:'row',open:[],selected:{} };
+      const names = {good:'Consistent',bad:'Mismatch signal',warn:'Inconclusive',none:'No identity result'};
+      const safe = value => String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+      function applySaved(snapshot) {
+        const incoming = snapshot?.modelContent;
+        if (!incoming || incoming.view !== 'modeltrace-status-concept') return;
+        if (['provider','model'].includes(incoming.grouping)) state.grouping = incoming.grouping;
+        if (['comfortable','compact'].includes(incoming.density)) state.density = incoming.density;
+        if (['row','details'].includes(incoming.availability)) state.availability = incoming.availability;
+        if (Array.isArray(snapshot.privateContent?.open)) state.open = snapshot.privateContent.open.filter(id => monitors.some(item => item.id === id));
+        for (const [id,index] of Object.entries(snapshot.privateContent?.selected || {})) {
+          if (monitors.some(item=>item.id===id) && Number.isInteger(index) && index>=0 && index<24) state.selected[id]=index;
+        }
+      }
+      function save() {
+        window.openai?.setWidgetState?.({modelContent:{view:'modeltrace-status-concept',grouping:state.grouping,density:state.density,availability:state.availability},privateContent:{open:state.open,selected:state.selected}})?.catch(()=>{});
+      }
+      function historicalRun(m,index) {
+        const kind=m.history[index];
+        const other=m.model==='Model X'?'Model Y':'Model X';
+        const when=index===23?'Latest check':`${23-index} hours ago`;
+        const scores=index===23?m.scores:kind==='none'?[]:kind==='bad'?[[other,87],[m.model+' · expected',9],['Other candidates',4]]:kind==='warn'?[[m.model+' · expected',46],[other,44],['Other candidates',10]]:[[m.model+' · expected',88],[other,8],['Other candidates',4]];
+        const identity=kind==='none'?`Expected: ${m.model}. No fingerprint evidence; the probe timed out.`:`Expected: ${m.model}. Closest: ${scores[0][0].replace(' · expected','')} (${scores[0][1]}% relative weight). ${kind==='bad'?`Expected model weight: 9%. `:kind==='warn'?`Next candidate: ${scores[1][0]} (${scores[1][1]}%). `:''}3/3 valid samples.`;
+        return {kind,when,scores,tooltip:`${names[kind]}. ${identity} ${kind==='none'?'API unavailable.':'API available.'} ${when}.`};
+      }
+      function renderRow(m) {
+        const label = state.grouping === 'provider' ? m.model : m.provider;
+        const index=state.selected[m.id]??23;
+        const run=historicalRun(m,index);
+        const scoreRows = run.scores.length ? run.scores.map(([name,score])=>`<div class="mt-score-line"><span>${safe(name)}</span><span>${score}%</span></div><div class="mt-score-track"><div class="mt-score-fill" style="width:${score}%"></div></div>`).join('') : '<p class="mt-small mt-muted">No scores for this run</p>';
+        const summary = [...new Set(m.history)].map(kind=>`${m.history.filter(v=>v===kind).length} ${names[kind].toLowerCase()}`).join(', ');
+        return `<div class="mt-monitor">
+          <details class="mt-row" data-monitor="${m.id}" ${state.open.includes(m.id)?'open':''}>
+            <summary class="cursor-interaction" aria-label="${safe(m.provider+' '+m.model)}: ${safe(m.state)}. Expand details.">
+              <div><div class="mt-model">${safe(label)}</div><div class="mt-secondary">Standard channel · high reasoning</div><div class="mt-hint">Check details <span aria-hidden="true">↗</span></div></div>
+              <div><div class="mt-state"><i class="mt-dot ${m.kind}" aria-hidden="true"></i>${safe(m.state)}</div>${m.closest?`<div class="mt-secondary">Closest: ${safe(m.closest)}</div>`:''}<div class="mt-secondary">${safe(m.detail)}</div></div>
+              <div class="mt-availability"><div class="mt-state"><i class="mt-dot ${m.availKind}" aria-hidden="true"></i>${m.availability}</div><div class="mt-secondary">${m.success}/${m.total} successful probes · 24 h</div></div>
+            </summary>
+            <div class="mt-details">
+              <div class="mt-detail-grid"><div><div class="mt-detail-title">${safe(run.when)} · ${names[run.kind]}</div>${scoreRows}<p class="mt-caption">Relative weights within this reference library.</p></div><div><div class="mt-detail-title">Check evidence</div><dl class="mt-facts"><div><dt>Expected model</dt><dd>${safe(m.model)}</dd></div><div><dt>Valid samples this run</dt><dd>${run.kind==='none'?'0 / 3':'3 / 3'}</dd></div><div><dt>Valid scheduled batches · 24 h</dt><dd>${m.batch}</dd></div><div><dt>Successful probes · 24 h</dt><dd>${m.success} / ${m.total}</dd></div><div><dt>Probe duration</dt><dd>${index===23?m.duration:'Not recorded in preview'}</dd></div><div><dt>Probe output tokens</dt><dd>${index===23?m.tokens:'Not recorded in preview'}</dd></div><div><dt>Token timing</dt><dd>Not exposed in this example</dd></div></dl></div></div>
+              <p class="mt-note">${safe(index===23?m.note:run.tooltip)}</p><p class="mt-caption">Method and library version: example-v1 · probe profile: example-v1</p>
+            </div>
+          </details>
+          <div class="mt-history-wrap"><div class="mt-history" role="group" aria-label="${safe(m.provider+' '+m.model)} identity history, 24 hourly checks: ${safe(summary)}">${m.history.map((kind,hour)=>`<button type="button" class="cursor-interaction" data-run="${m.id}" data-hour="${hour}" data-tooltip="${safe(historicalRun(m,hour).tooltip)}" aria-label="${safe(historicalRun(m,hour).tooltip)}"><span class="mt-hour ${kind}" aria-hidden="true"></span></button>`).join('')}</div><div class="mt-touch-history" role="img" aria-label="${safe(summary)}">${m.history.map(kind=>`<span class="mt-hour ${kind}" aria-hidden="true"></span>`).join('')}</div><div class="mt-history-label"><span>24 hours ago</span><span>Identity assessments · hourly</span><span>Now</span></div><label class="mt-check-picker">Inspect a check<select data-select-run="${m.id}"><option value="">Select an hourly check</option>${m.history.map((kind,hour)=>`<option value="${hour}" ${state.selected[m.id]===hour?'selected':''}>${historicalRun(m,hour).when} · ${names[kind]}</option>`).reverse().join('')}</select></label></div>
+        </div>`;
+      }
+      function render() {
+        root.dataset.density = state.density;
+        root.dataset.availability = state.availability;
+        root.querySelectorAll('[data-group]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.group===state.grouping)));
+        const grouped = new Map();
+        for (const item of monitors) {
+          const key = item[state.grouping];
+          if (!grouped.has(key)) grouped.set(key,[]);
+          grouped.get(key).push(item);
+        }
+        groupsEl.innerHTML = [...grouped].map(([label,items])=>`<section class="mt-group" aria-label="${safe(label)}"><div class="mt-group-head"><h2>${safe(label)}</h2><span class="mt-small mt-muted">${items.length} ${state.grouping==='provider'?'models':'providers'}</span></div>${items.map(renderRow).join('')}</section>`).join('');
+        function selectRun(id,index,restoreFocus) {
+          state.selected[id]=index;
+          if(!state.open.includes(id))state.open.push(id);
+          render();
+          if(restoreFocus)groupsEl.querySelector(`[data-run="${id}"][data-hour="${index}"]`)?.focus({preventScroll:true});
+          else groupsEl.querySelector(`[data-select-run="${id}"]`)?.focus({preventScroll:true});
+          save();
+        }
+        groupsEl.querySelectorAll('[data-run]').forEach(button=>button.addEventListener('click',()=>selectRun(button.dataset.run,Number(button.dataset.hour),true)));
+        groupsEl.querySelectorAll('[data-select-run]').forEach(select=>select.addEventListener('change',()=>{if(select.value!=='')selectRun(select.dataset.selectRun,Number(select.value),false);}));
+        groupsEl.querySelectorAll('details').forEach(details=>details.addEventListener('toggle',()=>{
+          const current = groupsEl.querySelector(`[data-monitor="${details.dataset.monitor}"]`);
+          if (current !== details) return;
+          const next = new Set(state.open);
+          if (details.open) next.add(details.dataset.monitor); else next.delete(details.dataset.monitor);
+          const changed = [...next].sort().join('|') !== [...state.open].sort().join('|');
+          state.open = [...next];
+          if (changed) save();
+        }));
+      }
+      applySaved(window.openai?.widgetState);
+      render();
+      root.querySelectorAll('[data-group]').forEach(button=>button.addEventListener('click',()=>{state.grouping=button.dataset.group;render();save();}));
+      window.addEventListener('openai:set_globals',event=>{if(event.detail?.globals?.widgetState){const before=JSON.stringify(state);applySaved(event.detail.globals.widgetState);if(before!==JSON.stringify(state))render();}});
+      if (globalThis.Tweak) {
+        const tweaks = new Tweak({container:root,onChange:()=>{render();save();}});
+        tweaks.addSelect(state,'density',{label:'Row spacing',options:[{label:'Comfortable',value:'comfortable'},{label:'Compact',value:'compact'}]});
+        tweaks.addSelect(state,'availability',{label:'Availability placement',options:[{label:'In the model row',value:'row'},{label:'Inside check details',value:'details'}]});
+      }
+    })();
+  </script>
+</div>

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "modeltrace-status"
+version = "0.1.0"
+description = "Scheduled Codex model identity monitoring for ModelTrace"
+requires-python = ">=3.11"
+dependencies = ["Flask>=3,<4", "numpy>=1.26,<3", "gunicorn>=23,<24"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+
+[project.scripts]
+modeltrace-status = "modeltrace_status.cli:main"
+
+[tool.setuptools.package-data]
+modeltrace_status = ["web/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

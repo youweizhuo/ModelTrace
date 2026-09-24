@@ -1,0 +1,34 @@
+[service]
+upstream = ".."
+data_dir = "./runtime"
+secrets_file = "./credentials.env"
+codex = "codex"
+host = "0.0.0.0"
+port = 7861
+concurrency = 2
+timeout = 240
+daily_budget = 120
+confirmation_batches = 2
+sample_retries = 1
+retention_days = 90
+evidence_days = 30
+
+[[monitors]]
+id = "example-astra"
+provider = "Example provider"
+base_url = "http://127.0.0.1:18082/v1"
+key_env = "MODELTRACE_EXAMPLE_KEY"
+model = "gpt-6-astra"
+expected_model = "gpt-6-astra"
+effort = "high"
+interval = 3600
+
+[[monitors]]
+id = "example-sol"
+provider = "Example provider"
+base_url = "http://127.0.0.1:18082/v1"
+key_env = "MODELTRACE_EXAMPLE_KEY"
+model = "gpt-6-sol"
+expected_model = "gpt-6-sol"
+effort = "high"
+interval = 3600

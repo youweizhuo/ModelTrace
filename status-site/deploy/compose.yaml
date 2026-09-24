@@ -1,0 +1,38 @@
+services:
+  init:
+    build:
+      context: ../..
+      dockerfile: status-site/deploy/Dockerfile
+    network_mode: host
+    volumes:
+      - ${MODELTRACE_CONFIG_DIR:?Set MODELTRACE_CONFIG_DIR}:/config:ro
+      - status-data:/var/lib/modeltrace-status
+    command: ["modeltrace-status", "--config", "/config/config.toml", "init"]
+  web:
+    build:
+      context: ../..
+      dockerfile: status-site/deploy/Dockerfile
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ${MODELTRACE_CONFIG_DIR}:/config:ro
+      - status-data:/var/lib/modeltrace-status
+  worker:
+    build:
+      context: ../..
+      dockerfile: status-site/deploy/Dockerfile
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    network_mode: host
+    restart: unless-stopped
+    stop_grace_period: 260s
+    volumes:
+      - ${MODELTRACE_CONFIG_DIR}:/config:ro
+      - status-data:/var/lib/modeltrace-status
+    command: ["modeltrace-status", "--config", "/config/config.toml", "worker"]
+volumes:
+  status-data:

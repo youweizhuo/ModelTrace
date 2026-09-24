@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Manage · ModelTrace</title>
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/style.css">
+  <script type="module" src="/assets/manage.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/"><img src="/assets/icon.svg" alt="" width="22" height="22"><span>ModelTrace</span></a>
+    <nav aria-label="Main"><a href="/">Status</a><a href="/manage" aria-current="page">Manage</a></nav>
+    <div class="topbar-actions">
+      <span id="live" class="live" data-state="connecting" hidden><i class="dot" aria-hidden="true"></i><span id="live-text"></span></span>
+      <button id="sign-out" type="button" class="button quiet small" hidden>Sign out</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <section id="login" class="login-card" hidden>
+    <img src="/assets/icon.svg" alt="" width="36" height="36">
+    <h1>Sign in to manage</h1>
+    <p>Use the admin password from the <span class="mono">admin-password</span> file in the server’s data directory.</p>
+    <form id="login-form" novalidate>
+      <label class="field"><span class="label">Password</span>
+        <span class="input-group">
+          <input name="password" type="password" autocomplete="current-password" required>
+          <button type="button" class="button" data-reveal="password" aria-pressed="false">Show</button>
+        </span>
+      </label>
+      <p id="login-error" class="form-error" role="alert"></p>
+      <button class="button primary" type="submit">Sign in</button>
+    </form>
+  </section>
+
+  <section id="management" hidden>
+    <div class="page-head">
+      <div><h1>Providers</h1><p id="provider-summary"></p></div>
+      <div class="actions">
+        <label class="search"><span class="visually-hidden">Filter providers and models</span>
+          <input id="search" type="search" placeholder="Filter…" autocomplete="off" spellcheck="false"></label>
+        <button id="add-provider" type="button" class="button primary">+ Add provider</button>
+      </div>
+    </div>
+    <div id="providers"><div class="skeleton-block"></div></div>
+  </section>
+</main>
+
+<dialog id="editor" class="drawer wide" aria-labelledby="editor-title">
+  <form id="provider-form" novalidate>
+    <header class="drawer-head">
+      <div class="drawer-titles"><h2 id="editor-title">Add provider</h2><p id="editor-subtitle" class="muted"></p></div>
+      <button type="button" class="icon-button" data-close aria-label="Close editor">×</button>
+    </header>
+    <div class="drawer-body">
+      <fieldset class="form-section">
+        <legend>Connection</legend>
+        <div class="form-grid">
+          <label class="field"><span class="label">Provider name</span>
+            <input name="name" maxlength="80" required autocomplete="off">
+            <span class="field-error" data-error="name"></span></label>
+          <div class="field"><span class="label">Monitoring</span>
+            <label class="switch-field"><input name="enabled" type="checkbox" checked> Provider enabled</label></div>
+          <label class="field span-all"><span class="label">API base URL</span>
+            <input name="base_url" type="url" inputmode="url" placeholder="https://gateway.example.com/v1" required autocomplete="off" spellcheck="false">
+            <span class="hint">A Responses-compatible endpoint. Monitors sharing a host and port are checked one at a time.</span>
+            <span class="field-error" data-error="base_url"></span></label>
+          <label class="field span-all"><span class="label">API key</span>
+            <span class="input-group">
+              <input name="api_key" type="password" autocomplete="new-password" spellcheck="false">
+              <button type="button" class="button" data-reveal="api_key" aria-pressed="false">Show</button>
+            </span>
+            <span class="hint" id="key-hint"></span>
+            <span class="field-error" data-error="api_key"></span></label>
+        </div>
+      </fieldset>
+      <fieldset class="form-section">
+        <legend>Models <span id="model-count" class="num"></span></legend>
+        <div id="model-editors"></div>
+        <button id="add-model" type="button" class="button">+ Add model</button>
+        <datalist id="reference-models"></datalist>
+      </fieldset>
+      <p id="save-error" class="form-error" role="alert"></p>
+    </div>
+    <footer class="drawer-foot">
+      <button type="button" id="remove-provider" class="button danger-quiet" hidden>Remove provider</button>
+      <span class="spacer"></span>
+      <button type="button" class="button" data-close>Cancel</button>
+      <button type="submit" id="save-provider" class="button primary">Save</button>
+    </footer>
+  </form>
+</dialog>
+
+<template id="model-template">
+  <div class="model-editor">
+    <div class="model-editor-head"><span data-title>Model</span>
+      <button type="button" class="button danger-quiet small" data-remove>Remove</button></div>
+    <div class="form-grid">
+      <label class="field"><span class="label">Requested model</span>
+        <input data-field="model" list="reference-models" required autocomplete="off" spellcheck="false">
+        <span class="field-error" data-error="model"></span></label>
+      <label class="field"><span class="label">Expected model</span>
+        <input data-field="expected_model" list="reference-models" placeholder="Same as requested" autocomplete="off" spellcheck="false">
+        <span class="field-error" data-error="expected_model"></span></label>
+      <label class="field"><span class="label">Reasoning</span>
+        <select data-field="effort">
+          <option>minimal</option><option>low</option><option>medium</option><option selected>high</option>
+          <option>xhigh</option><option>max</option><option>ultra</option>
+        </select></label>
+      <label class="field"><span class="label">Check every (minutes)</span>
+        <input data-field="interval" type="number" min="1" max="10080" step="1" inputmode="numeric" required>
+        <span class="field-error" data-error="interval"></span></label>
+      <label class="field"><span class="label">Channel label</span>
+        <input data-field="channel" maxlength="160" required autocomplete="off">
+        <span class="field-error" data-error="channel"></span></label>
+      <label class="switch-field"><input data-field="enabled" type="checkbox" checked> Enabled</label>
+    </div>
+  </div>
+</template>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>ModelTrace Status</title>
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/style.css">
+  <script type="module" src="/assets/status.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#monitors">Skip to monitors</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/"><img src="/assets/icon.svg" alt="" width="22" height="22"><span>ModelTrace</span></a>
+    <nav aria-label="Main"><a href="/" aria-current="page">Status</a><a href="/manage">Manage</a></nav>
+    <span id="live" class="live" data-state="connecting" role="status"><i class="dot" aria-hidden="true"></i><span id="live-text">Connecting…</span></span>
+  </div>
+</header>
+
+<main class="page">
+  <h1 class="visually-hidden">Model identity status</h1>
+  <div id="notice" class="notice" role="status" hidden></div>
+
+  <div class="toolbar">
+    <div id="filters" class="chips" role="group" aria-label="Filter by state"></div>
+    <div class="toolbar-controls">
+      <label class="search"><span class="visually-hidden">Filter monitors</span>
+        <input id="search" type="search" placeholder="Filter…  /" autocomplete="off" spellcheck="false"></label>
+      <div class="segmented" role="group" aria-label="Group by">
+        <button type="button" data-group="provider">Provider</button>
+        <button type="button" data-group="model">Model</button>
+        <button type="button" data-group="none">None</button>
+      </div>
+      <div class="segmented" role="group" aria-label="History period">
+        <button type="button" data-window="24h">24h</button>
+        <button type="button" data-window="7d">7d</button>
+        <button type="button" data-window="30d">30d</button>
+      </div>
+      <label class="sort-select"><span class="visually-hidden">Sort by</span>
+        <select id="sort-select">
+          <option value="severity">Sort: severity</option>
+          <option value="monitor">Sort: name</option>
+          <option value="checked">Sort: last check</option>
+        </select></label>
+    </div>
+  </div>
+
+  <div id="error" class="banner-error" role="alert" hidden></div>
+
+  <section class="table" aria-label="Monitors">
+    <div class="table-head" id="table-head"></div>
+    <div id="monitors" tabindex="-1"><div class="empty">Loading monitors…</div></div>
+  </section>
+</main>
+
+<footer class="page footer">
+  <div class="legend" aria-label="History legend">
+    <span><i class="swatch s-consistent"></i>Consistent</span>
+    <span><i class="swatch s-mismatch_signal"></i>Mismatch</span>
+    <span><i class="swatch s-inconclusive"></i>Inconclusive</span>
+    <span><i class="swatch s-not_in_library"></i>Not in library</span>
+    <span><i class="swatch s-unknown"></i>No result</span>
+    <span><i class="swatch s-unknown outage"></i>Unavailable</span>
+    <span><i class="swatch s-empty"></i>No check</span>
+    <span><i class="swatch s-consistent version-mark"></i>Checker changed</span>
+  </div>
+  <details class="about">
+    <summary>About these checks</summary>
+    <div class="about-content">
+      <p>Each history bar shows the latest completed check in its period. Its colour is the identity assessment. Hatching means the API was unavailable, so no fingerprint could be taken. A tick above a bar marks a checker version change.</p>
+      <p>Fingerprints compare responses against reference models. They do not authenticate a provider's backend, and candidate weights are relative within the reference library. Availability counts successful probes from this machine, not continuous uptime.</p>
+    </div>
+  </details>
+  <p id="method-version" class="method"></p>
+</footer>
+
+<div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+
+<dialog id="drawer" class="drawer" aria-labelledby="drawer-title">
+  <header class="drawer-head">
+    <div class="drawer-titles">
+      <h2 id="drawer-title">Check</h2>
+      <p id="drawer-subtitle" class="muted"></p>
+    </div>
+    <button type="button" class="icon-button" data-close aria-label="Close details">×</button>
+  </header>
+  <div class="tabs" role="tablist" aria-label="Details">
+    <button type="button" role="tab" id="tab-overview" aria-controls="pane-overview" data-tab="overview">Overview</button>
+    <button type="button" role="tab" id="tab-check" aria-controls="pane-check" data-tab="check">Check</button>
+    <button type="button" role="tab" id="tab-history" aria-controls="pane-history" data-tab="history">History</button>
+  </div>
+  <div class="drawer-body">
+    <section id="pane-overview" role="tabpanel" aria-labelledby="tab-overview" hidden></section>
+    <section id="pane-check" role="tabpanel" aria-labelledby="tab-check"></section>
+    <section id="pane-history" role="tabpanel" aria-labelledby="tab-history" hidden></section>
+  </div>
+</dialog>
+
+<noscript><p class="page">This page needs JavaScript to load monitor status. The JSON API is at <a href="/api/status">/api/status</a>.</p></noscript>
+</body>
+</html>

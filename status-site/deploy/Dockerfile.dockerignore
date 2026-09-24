@@ -1,0 +1,9 @@
+.git
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/*.env
+**/runtime
+**/config.local.toml
+status-site/design
+data/*_reference.jsonl
