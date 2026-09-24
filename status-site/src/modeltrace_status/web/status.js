@@ -605,13 +605,13 @@ function checkMarkup(run) {
   const index = runs.findIndex(r => r.id === run.id);
   const newer = index > 0 ? runs[index - 1] : null, older = index >= 0 ? runs[index + 1] : null;
   return html`
-    <div class="check-head">
-      <div>${badge(shownState(run))}
-        <p class="muted small">${formatFull(run.started_at)} · <span data-ago="${run.started_at}"></span></p></div>
-      <div class="pager">
-        <button type="button" class="button small" data-goto="${older?.id ?? ''}" ${older ? '' : 'disabled'} aria-label="Older check">← Older</button>
-        <button type="button" class="button small" data-goto="${newer?.id ?? ''}" ${newer ? '' : 'disabled'} aria-label="Newer check">Newer →</button>
-      </div>
+    <div class="run-head">
+      ${badge(shownState(run))}
+      <span class="muted small" title="${formatFull(run.started_at)}">${formatTime(run.started_at)} · <span data-ago="${run.started_at}"></span></span>
+      <span class="pager">
+        <button type="button" class="icon-button small" data-goto="${older?.id ?? ''}" ${older ? '' : 'disabled'} aria-label="Older check" title="Older check">‹</button>
+        <button type="button" class="icon-button small" data-goto="${newer?.id ?? ''}" ${newer ? '' : 'disabled'} aria-label="Newer check" title="Newer check">›</button>
+      </span>
     </div>
     ${slotTabs(run)}
     <p class="verdict-text">${explanation(run)}</p>
@@ -644,8 +644,7 @@ function checkMarkup(run) {
 function slotTabs(run) {
   const bucket = viewsById.get(run.monitor_id)?.m.history.find(b => b.checks.some(c => c.id === run.id));
   if (!bucket || bucket.checks.length < 2) return '';
-  return html`<div class="slot-tabs" role="group" aria-label="Checks ${formatRange(bucket.start, bucket.end)}">
-    <span class="muted small">${formatRange(bucket.start, bucket.end)}</span>
+  return html`<div class="slot-tabs" role="group" aria-label="Checks ${formatRange(bucket.start, bucket.end)}" title="Checks ${formatRange(bucket.start, bucket.end)}">
     ${bucket.checks.map(c => html`<button type="button" class="slot-tab" data-goto="${c.id}" aria-current="${c.id === run.id}"><i class="dot tone-${stateTone(shownState(c))}" aria-hidden="true"></i>${formatTime(c.started_at)}</button>`)}
   </div>`;
 }

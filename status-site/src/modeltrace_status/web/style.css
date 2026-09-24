@@ -284,9 +284,8 @@ main.page { padding-bottom: 8px; }
 .tip-checks { margin: 8px 0 0; padding: 0; list-style: none; }
 .tip-checks li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 3px 0; }
 .tip-checks li + li { border-top: 1px solid var(--line); }
-.slot-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
-.slot-tabs .muted { margin-right: 4px; }
-.slot-tab { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border: 1px solid var(--line-strong); border-radius: 4px; background: none; font-size: 12.5px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.slot-tabs { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 10px; }
+.slot-tab { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border: 1px solid var(--line-strong); border-radius: 4px; background: none; font-size: 12px; font-variant-numeric: tabular-nums; cursor: pointer; }
 .slot-tab:hover { background: var(--hover); }
 .slot-tab[aria-current="true"] { border-color: var(--fg); background: var(--pressed); font-weight: 600; }
 .tip-note { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
@@ -315,7 +314,11 @@ dialog.drawer > form { display: flex; flex-direction: column; min-height: 0; hei
 
 .check-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .check-head p { margin-top: 6px; }
-.pager { display: flex; gap: 6px; }
+.pager { display: flex; gap: 2px; }
+.run-head { display: flex; align-items: center; gap: 10px; }
+.run-head .pager { margin-left: auto; }
+.icon-button.small { width: 28px; height: 28px; font-size: 18px; line-height: 1; }
+.icon-button:disabled { opacity: .35; cursor: default; }
 .verdict-text { margin-top: 14px; padding: 12px 14px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13.5px; }
 .panel { margin-top: 22px; }
 .panel h3, .run-details summary { margin-bottom: 8px; color: var(--muted); font-size: 11.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
