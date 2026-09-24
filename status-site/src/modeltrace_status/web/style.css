@@ -245,8 +245,7 @@ main.page { padding-bottom: 8px; }
 .speed { display: grid; gap: 2px; }
 .speed-value { color: var(--tone, var(--fg)); font-weight: 600; }
 .speed-label { display: inline-block; width: 34px; }
-.speed-kpis { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 8px; }
-.speed-kpi { display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
+.c-monitor .activity { margin-left: 8px; vertical-align: 1px; }
 
 /* -------------------------------------------------------------- history */
 .bars { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 2px; height: 26px; margin-top: 5px; margin-bottom: 1px; }
@@ -311,7 +310,7 @@ dialog.drawer > form { display: flex; flex-direction: column; min-height: 0; hei
 .pager { display: flex; gap: 6px; }
 .verdict-text { margin-top: 14px; padding: 12px 14px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13.5px; }
 .panel { margin-top: 22px; }
-.panel h3, .method summary { margin-bottom: 8px; color: var(--muted); font-size: 11.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+.panel h3, .run-details summary { margin-bottom: 8px; color: var(--muted); font-size: 11.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
 .candidates li { padding: 6px 0; }
 .candidate-line { display: flex; align-items: baseline; gap: 6px; font-size: 13px; }
 .candidate-line .num { margin-left: auto; }
@@ -330,14 +329,12 @@ dialog.drawer > form { display: flex; flex-direction: column; min-height: 0; hei
 .probe.failed .probe-icon { background: var(--bad-soft); color: var(--bad); }
 .probe.rejected .probe-icon { background: var(--warn-soft); color: var(--warn); }
 .probe p { margin: 5px 0 0 26px; }
-.method { margin-top: 22px; }
-.method summary { cursor: pointer; }
+.run-details { margin-top: 22px; }
+.run-details summary { cursor: pointer; }
 
 .history-list { margin: 0 0 14px; padding: 0; list-style: none; }
 .history-day { padding: 14px 10px 6px; border-bottom: 1px solid var(--line-strong); color: var(--muted); font-size: 12px; font-weight: 550; }
 .history-day:first-child { padding-top: 0; }
-.kpi { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13px; }
-.kpi-value { font-size: 24px; font-weight: 650; letter-spacing: -.3px; }
 .bars.static .bar { cursor: default; filter: none; }
 .a-available { background-color: var(--good); }
 .a-partial { background-color: var(--warn); }
@@ -527,5 +524,12 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
 
 /* Closest match that is simply the expected model is routine; mismatches stand out. */
 .closest-line.is-expected { color: var(--muted); }
-.overview-when { margin: 8px 0 0; }
-.failure-line { margin: 8px 0 0; }
+.overview-summary { margin: 12px 0 6px; font-size: 14px; line-height: 1.5; }
+.overview-note { margin: 0 0 6px; color: var(--warn); font-size: 13px; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.stat { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 4px; }
+.stat-label { color: var(--muted); font-size: 12px; }
+.stat-value { color: var(--tone, var(--fg)); font-size: 22px; font-weight: 650; letter-spacing: -.3px; }
+.stat .meter { margin: 2px 0 4px; }
+.stat .meter i { background: var(--tone, var(--muted)); }
+.stat-caption { color: var(--muted); font-size: 12px; }

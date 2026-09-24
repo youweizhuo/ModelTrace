@@ -157,12 +157,13 @@ match, plus the expected model's weight, valid samples or availability only when
 they are not routine. Each history strip is
 a single tab stop; use the arrow keys to move between periods. Click (or tap) a
 bar to open that check in the evidence drawer: a one-paragraph explanation, the
-top candidate weights (plus the expected model), and each probe's outcome. Method
-provenance is collapsed; settings the run used differently from the current
-configuration are noted beside its time. Click a monitor's name for its Overview:
-the current identity with the same explanation, when it was checked and is next
-due, and availability for the selected period (success rate, per-period strip and
-any failures by reason). Settings appear in the drawer subtitle and on `/manage`.
+top candidate weights (plus the expected model), each probe's outcome and speed,
+and the run's settings (collapsed). Click a monitor's name for its Overview: the
+current result in one sentence, when it was checked and is next due, four tiles
+(identity score, availability, time to first token and decode speed, each with
+its typical value) and the period's result strip with any failed probes by
+reason. A check in progress shows its probe count beside the monitor's name.
+Settings appear in the drawer subtitle and on `/manage`.
 A History tab lists the monitor's full, paginated check list. Table rows show a
 channel or differing expected model only when set, and a closest match that is
 just the expected model is dimmed so disagreements stand out.
