@@ -41,7 +41,7 @@ def run_speed(run):
 
 
 def assessed(run):
-    """Scheduled checks with a full sample set; confirmations only follow mismatches and would double-count them."""
+    """Scheduled checks with a full sample set (older confirmation re-runs followed mismatches and would double-count them)."""
     return (run["kind"] == "scheduled" and run["state"] == "completed" and run.get("expected_weight") is not None
             and run.get("valid_samples", 0) >= run.get("planned_samples", 3))
 
@@ -130,7 +130,7 @@ def snapshot(store, settings, window="24h", now=None):
         scheduled = 0
         weights = []
         buckets = [{"start": since + i * seconds / count, "end": since + (i + 1) * seconds / count,
-                    "counts": {}, "runs": 0, "scheduled": 0, "confirmations": 0, "latest_id": None,
+                    "counts": {}, "runs": 0, "scheduled": 0, "latest_id": None,
                     "latest_identity": None, "latest_availability": None, "summary": None, "versions": []} for i in range(count)]
         for run in reversed(rows):
             if run["state"] == "running":
@@ -146,7 +146,6 @@ def snapshot(store, settings, window="24h", now=None):
             bucket["counts"][identity] = bucket["counts"].get(identity, 0) + 1
             bucket["runs"] += 1
             bucket["scheduled"] += run["kind"] == "scheduled"
-            bucket["confirmations"] += run["kind"] == "confirmation"
             bucket["latest_id"] = run["id"]
             bucket["latest_identity"] = identity
             bucket["latest_availability"] = run["availability"]
@@ -178,7 +177,7 @@ def snapshot(store, settings, window="24h", now=None):
                               "ttft_tone": speed_tone(speed["ttft_ms"], typical["ttft_ms"]),
                               "tps_tone": speed_tone(speed["output_tps"], typical["output_tps"], higher_is_better=True)}
     return {"at": now, "window": window, "worker_online": online, "heartbeat": heartbeat, "checker": checker,
-            "monitors": monitors, "settings": {"daily_budget": settings.daily_budget, "confirmation_batches": settings.confirmation_batches}}
+            "monitors": monitors, "settings": {"daily_budget": settings.daily_budget}}
 
 
 def create_app(settings=None):

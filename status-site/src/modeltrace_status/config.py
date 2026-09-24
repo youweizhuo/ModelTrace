@@ -46,7 +46,6 @@ class Settings:
     concurrency: int = 2
     timeout: int = 240
     daily_budget: int = 120
-    confirmation_batches: int = 2
     sample_retries: int = 1
     retention_days: int = 90
     evidence_days: int = 30
@@ -86,9 +85,9 @@ def load_settings(path=None):
         upstream=resolve(general["upstream"]), data_dir=resolve(general["data_dir"]),
         codex=general.get("codex", "codex"), monitors=tuple(monitors),
         secrets_file=resolve(general["secrets_file"]) if general.get("secrets_file") else None,
-        **{key: general[key] for key in ("concurrency", "timeout", "daily_budget", "confirmation_batches", "sample_retries", "retention_days", "evidence_days", "host", "port") if key in general},
+        **{key: general[key] for key in ("concurrency", "timeout", "daily_budget", "sample_retries", "retention_days", "evidence_days", "host", "port") if key in general},
     )
-    for key, lo, hi in (("concurrency", 1, 16), ("timeout", 10, 900), ("daily_budget", 3, 10000), ("confirmation_batches", 0, 5), ("sample_retries", 0, 3), ("retention_days", 1, 3650), ("evidence_days", 0, 3650), ("port", 1024, 65535)):
+    for key, lo, hi in (("concurrency", 1, 16), ("timeout", 10, 900), ("daily_budget", 3, 10000), ("sample_retries", 0, 3), ("retention_days", 1, 3650), ("evidence_days", 0, 3650), ("port", 1024, 65535)):
         if not isinstance(getattr(settings, key), int) or not lo <= getattr(settings, key) <= hi:
             raise ValueError(f"Invalid {key}")
     return settings

@@ -51,8 +51,7 @@ journalctl --user -u modeltrace-status-worker -f
 For development, run `modeltrace-status --config ... web` and `... worker` in
 separate terminals. Production uses Gunicorn, with one web worker and four
 threads. A file lock allows only one scheduling worker per data directory.
-`worker --once` runs each enabled monitor once, including bounded confirmation
-checks, and exits.
+`worker --once` runs each enabled monitor once and exits.
 
 ## Managing providers
 
@@ -69,7 +68,7 @@ Each model row has its own Pause/Resume control. Provider-level Pause provider/R
 provider controls the parent provider; resuming a provider preserves the individual
 models' pause settings. Resuming a model queues a fresh check when its provider
 is enabled. A pause lets the current probe finish, then stops the remaining
-samples and confirmation batches.
+samples.
 
 Click a provider's name to show its configuration: the base URL and each
 model's expected model, reasoning, interval, and channel. Each model row shows
@@ -129,11 +128,9 @@ response is still recorded and shown in the check's evidence, and replacements
 count against the daily budget. If the budget has no room, the batch is assessed
 without the replacement. Failed requests are never replaced.
 
-An initial mismatch can trigger two additional batches. Only complete batches
-that all show the same mismatch produce a repeated signal. A continuing signal
-does not start endless confirmation batches. These observations are correlated;
-the site does not interpret repeated findings as independent authentication proof.
-Thresholds are inherited heuristics, not newly calibrated accuracy guarantees.
+A mismatch triggers no extra checks; the next scheduled check is the follow-up.
+Older results may still show "Repeated mismatch" from the removed confirmation
+batches. Thresholds are inherited heuristics, not newly calibrated accuracy guarantees.
 
 Each check records the scorer and bank hashes, upstream Git revision, probe
 profile, assessment policy, Codex version, and monitor configuration revision.
@@ -193,7 +190,7 @@ Availability is **successful Codex probes / probes with observed provider
 outcomes**, not continuous uptime. Credential errors, rate/quota errors, upstream
 errors and timeouts remain distinguishable. Local runner failures are monitoring
 gaps. Invalid fingerprint samples can still have successful API responses.
-Daily budgets count started CLI probes, including failures and confirmations;
+Daily budgets count started CLI probes, including failures and replacements;
 the default is 120 probes per monitor per UTC day. Hidden behavior inside an
 upstream gateway is outside this request budget. Durations include CLI overhead;
 token counts are saved when supplied. TTFT/TBT remain null because the CLI event

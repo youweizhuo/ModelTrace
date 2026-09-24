@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 
 from .codex_runner import CodexRunner
 from .storage import Store
-from .upstream_adapter import UpstreamAdapter, method_version
+from .upstream_adapter import UpstreamAdapter
 
 log = logging.getLogger(__name__)
 FAILURES = {"provider_error", "auth_error", "rate_limit", "timeout"}
@@ -52,11 +52,11 @@ class Worker:
     def current(self, monitor):
         return any(m.id == monitor.id and m.same_basis(monitor.public()) for m, _, _ in self.store.targets())
 
-    def batch(self, monitor, credential, kind="scheduled", parent=None):
+    def batch(self, monitor, credential, kind="scheduled"):
         adapter = self.adapter
         provenance = (adapter.provenance if adapter else {}) | {"codex_version": self.runner.version,
                                                                  "sample_retries": self.settings.sample_retries}
-        run = self.store.create_run(monitor, kind, adapter.version if adapter else "unavailable", provenance, parent)
+        run = self.store.create_run(monitor, kind, adapter.version if adapter else "unavailable", provenance)
         evidence, outputs = [], []
         try:
             if not adapter:
@@ -118,46 +118,10 @@ class Worker:
         return run
 
     def check(self, monitor, credential):
-        previous = self.store.history(monitor.id, limit=1)
         run = self.batch(monitor, credential)
         if run["state"] == "budget_exhausted":
             now = time.time()
             self.store.due_at(monitor.id, now - now % 86400 + 86400 + 1)
-        continuing = (previous and monitor.same_basis(previous[0]["monitor"])
-                      and method_version(previous[0]["provenance"]) == method_version(run["provenance"])
-                      and previous[0]["identity"] in ("mismatch_signal", "repeated_mismatch")
-                      and previous[0].get("candidates", [])[:1] and run.get("candidates", [])[:1]
-                      and previous[0]["candidates"][0]["model"] == run["candidates"][0]["model"]
-                      and run["started_at"] - previous[0]["started_at"] < monitor.interval * 2 + self.settings.timeout)
-        count = self.settings.confirmation_batches
-        if run["identity"] != "mismatch_signal" or continuing or not count:
-            return
-        run["confirmation"] = {"state": "pending", "completed": 0, "target": count, "run_ids": []}
-        self.store.save_run(run)
-        outcomes = []
-        candidate = run["candidates"][0]["model"]
-        for _ in range(count):
-            if self.stop.is_set() or not self.current(monitor):
-                break
-            retry = self.batch(monitor, credential, "confirmation", run["id"])
-            outcomes.append(retry)
-            run["confirmation"]["completed"] = len(outcomes)
-            run["confirmation"]["run_ids"].append(retry["id"])
-            self.store.save_run(run)
-            if retry["state"] != "completed":
-                break
-        repeated = len(outcomes) == count and all(r["identity"] == "mismatch_signal" and r["candidates"][0]["model"] == candidate for r in outcomes)
-        complete_evidence = len(outcomes) == count and all(r["state"] == "completed" and r["valid_samples"] >= 3 for r in outcomes)
-        run["confirmation"]["state"] = "reproduced" if repeated else "not_reproduced" if complete_evidence else "inconclusive"
-        if repeated:
-            run["identity"] = "repeated_mismatch"
-        self.store.save_run(run)
-        if outcomes:
-            last = outcomes[-1]
-            last["confirmation"] = run["confirmation"]
-            if repeated:
-                last["identity"] = "repeated_mismatch"
-            self.store.save_run(last)
 
     def serve(self, once=False):
         lock_path = self.settings.data_dir / "worker.lock"
@@ -183,7 +147,7 @@ class Worker:
                             except Exception as error:
                                 log.error("Worker task failed for %s (%s)", mid, type(error).__name__)
                     # Providers and models sharing an API server share capacity.
-                    # Serialize their entire batches, including confirmations.
+                    # Serialize their entire batches.
                     # Oldest due first prevents a slow monitor starving others.
                     targets = sorted(self.store.targets(), key=lambda t: t[2]["next_due"])
                     busy_endpoints = {endpoint for _, endpoint in pending.values()}

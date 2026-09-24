@@ -1,8 +1,7 @@
 """The only upstream-code boundary. No fingerprint algorithm is copied here.
 
 The verdict policy is versioned separately from upstream's mathematical scorer.
-It follows Guard's compatible/difference thresholds, with batch confirmation in
-the worker. These are relative closed-set weights, not authentication confidence.
+It follows Guard's compatible/difference thresholds. These are relative closed-set weights, not authentication confidence.
 """
 from __future__ import annotations
 

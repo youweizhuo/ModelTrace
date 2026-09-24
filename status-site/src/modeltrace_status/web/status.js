@@ -234,11 +234,10 @@ function identityCell(v) {
   if (flag === 'changed') notes.push(`Last result: ${stateLabel(state)}`);
   else if (flag === 'stale') notes.push(data.worker_online ? 'Stale: check overdue' : 'Stale: worker offline');
   else if (!m.enabled && done) notes.push(`Last result: ${stateLabel(done.state === 'completed' ? done.identity : done.state)}`);
-  if (done?.confirmation) notes.push(`Confirmation ${done.confirmation.state.replaceAll('_', ' ')} (${done.confirmation.completed}/${done.confirmation.target})`);
   const failure = failureTitle(done);
   if (failure && ['unavailable', 'checker_error'].includes(state)) notes.push(failure);
   const shown = flag === 'changed' ? badge('changed') : badge(state);
-  const activity = active ? html`<span class="activity" title="${active.kind === 'confirmation' ? 'Confirming' : 'Checking'}: ${active.completed_samples} of ${active.planned_samples} probes"><span class="spinner" aria-hidden="true"></span>${active.completed_samples}/${active.planned_samples}</span>` : '';
+  const activity = active ? html`<span class="activity" title="Checking: ${active.completed_samples} of ${active.planned_samples} probes"><span class="spinner" aria-hidden="true"></span>${active.completed_samples}/${active.planned_samples}</span>` : '';
   return html`<div class="identity-line${flag === 'stale' || !m.enabled ? ' faded' : ''}" title="${notes.join(' · ')}">${shown}${activity}</div>`;
 }
 
@@ -362,7 +361,7 @@ function showTip(button) {
   const counts = Object.entries(b.counts);
   tooltip.innerHTML = String(s ? html`
     <div class="tip-time">${formatRange(b.start, b.end)}</div>
-    <div class="tip-state">${badge(s.state === 'completed' ? (s.identity === 'unknown' && s.availability === 'unavailable' ? 'unavailable' : s.identity) : s.state)}${s.kind === 'confirmation' ? html`<span class="tag">confirmation</span>` : ''}</div>
+    <div class="tip-state">${badge(s.state === 'completed' ? (s.identity === 'unknown' && s.availability === 'unavailable' ? 'unavailable' : s.identity) : s.state)}</div>
     <dl class="tip-facts">
       <div><dt>Closest</dt><dd>${s.top ? html`<span class="mono">${s.top.model}</span> · ${percent(s.top.weight)}` : 'no fingerprint'}</dd></div>
       ${s.top && s.top.model !== v.m.expected_model ? html`<div><dt>${v.m.expected_model}</dt><dd>${percent(s.expected_weight)}</dd></div>` : ''}
@@ -546,11 +545,8 @@ function explanation(run) {
   switch (run.identity) {
     case 'consistent': return `The expected model ${expected} ranked first with ${percent(top?.weight)} relative weight.`;
     case 'mismatch_signal':
-    case 'repeated_mismatch': {
-      const c = run.confirmation;
-      const repeat = run.identity === 'repeated_mismatch' ? ` The signal repeated in ${c ? `${c.completed}/${c.target}` : 'all'} confirmation batches. Repeated results are correlated evidence, not independent proof.` : '';
-      return `${top?.model} ranked first with ${percent(top?.weight)}; the expected model ${expected} received ${percent(run.expected_weight)}.${repeat}`;
-    }
+    case 'repeated_mismatch':
+      return `${top?.model} ranked first with ${percent(top?.weight)}; the expected model ${expected} received ${percent(run.expected_weight)}.`;
     case 'inconclusive':
       return run.valid_samples < planned
         ? `Only ${run.valid_samples} of ${planned} samples were valid${run.attempts.some(a => a.replaces != null) ? ', even after a replacement probe' : ''}; ${planned} are required for an assessment.`
@@ -584,22 +580,20 @@ function checkMarkup(run) {
   const current = viewsById.get(run.monitor_id)?.m;
   const differs = current ? [run.monitor.effort !== current.effort ? `${run.monitor.effort} reasoning` : null,
     run.monitor.expected_model !== current.expected_model ? `expected ${run.monitor.expected_model}` : null].filter(Boolean) : [];
-  const confirmation = run.confirmation && run.identity !== 'repeated_mismatch'
-    ? ` Confirmation ${run.confirmation.state.replaceAll('_', ' ')} (${run.confirmation.completed}/${run.confirmation.target} additional batches).` : '';
   const runs = drawer.history?.monitor === run.monitor_id ? drawer.history.runs : [];
   const index = runs.findIndex(r => r.id === run.id);
   const newer = index > 0 ? runs[index - 1] : null, older = index >= 0 ? runs[index + 1] : null;
   const p = run.provenance ?? {};
   return html`
     <div class="check-head">
-      <div>${badge(shownState)}${run.kind === 'confirmation' ? html`<span class="tag">confirmation</span>` : ''}
+      <div>${badge(shownState)}
         <p class="muted small">${formatFull(run.started_at)} · <span data-ago="${run.started_at}"></span>${differs.length ? ` · ran with ${differs.join(', ')}` : ''}</p></div>
       <div class="pager">
         <button type="button" class="button small" data-goto="${older?.id ?? ''}" ${older ? '' : 'disabled'} aria-label="Older check">← Older</button>
         <button type="button" class="button small" data-goto="${newer?.id ?? ''}" ${newer ? '' : 'disabled'} aria-label="Newer check">Newer →</button>
       </div>
     </div>
-    <p class="verdict-text">${explanation(run)}${confirmation}${modelNotServedHint(run)}</p>
+    <p class="verdict-text">${explanation(run)}${modelNotServedHint(run)}</p>
     <section class="panel">
       <h3>Fingerprint candidates</h3>
       ${candidates.length ? html`<ul class="candidates" role="list">${candidates.map(c => html`
@@ -764,7 +758,7 @@ function renderHistory() {
     return html`${heading}<li><button type="button" class="history-entry" data-goto="${r.id}" aria-current="${r.id === drawer.run}">
       <span class="num muted" title="${formatFull(r.started_at)}">${formatTime(r.started_at)}</span>
       <span class="history-state"><i class="dot tone-${stateTone(s)}" aria-hidden="true"></i>${stateLabel(s)}</span>
-      <span class="history-closest">${top ? html`<span class="mono">${top.model}</span> <span class="num muted">${percent(top.weight)}</span>` : html`<span class="muted">—</span>`}${r.kind === 'confirmation' ? html`<span class="muted"> · confirmation</span>` : ''}</span>
+      <span class="history-closest">${top ? html`<span class="mono">${top.model}</span> <span class="num muted">${percent(top.weight)}</span>` : html`<span class="muted">—</span>`}</span>
       <span class="num muted">${ttft != null ? seconds(ttft) : ''}${ttft != null && tps != null ? ' · ' : ''}${tps != null ? `${rate(tps)} tok/s` : ''}</span>
     </button></li>`;
   });

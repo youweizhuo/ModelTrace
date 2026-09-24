@@ -186,7 +186,7 @@ function applyActivity(next) {
       busy = true;
       cell = html`<span>Queuing…</span><div class="progress indeterminate"><i></i></div>`;
     } else if (state?.state === 'running') {
-      const verb = !state.enabled ? 'Finishing' : state.kind === 'confirmation' ? 'Confirming' : 'Checking';
+      const verb = !state.enabled ? 'Finishing' : 'Checking';
       label = 'Checking';
       busy = true;
       cell = html`<span class="num">${verb} ${state.completed_samples}/${state.planned_samples}</span><div class="progress"><i style="width:${Math.round(100 * state.completed_samples / Math.max(1, state.planned_samples))}%"></i></div>`;

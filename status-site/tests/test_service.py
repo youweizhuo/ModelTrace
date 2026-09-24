@@ -49,24 +49,12 @@ def run_monitor(store):
     return store.targets()[0][:2]
 
 
-def test_confirmation_requires_three_complete_batches(settings, store):
-    worker = Worker(settings, store, FakeRunner(["mismatch"] * 9), FakeAdapter())
-    worker.check(*run_monitor(store))
+def test_mismatch_runs_no_extra_batches(settings, store):
+    runner = FakeRunner(["mismatch"] * 3)
+    Worker(settings, store, runner, FakeAdapter()).check(*run_monitor(store))
     history = store.history("one")
-    assert len(history) == 3
-    assert history[0]["identity"] == "repeated_mismatch"
-    assert history[0]["confirmation"]["state"] == "reproduced"
-    assert history[-1]["identity"] == "repeated_mismatch"
-    assert all(r["availability"] == "available" for r in history)
-
-
-def test_failed_confirmation_does_not_become_repeated_mismatch(settings, store):
-    worker = Worker(settings, store, FakeRunner(["mismatch"] * 3 + ["timeout"] * 3 + ["mismatch"] * 3), FakeAdapter())
-    worker.check(*run_monitor(store))
-    history = store.history("one")
-    assert all(r["identity"] != "repeated_mismatch" for r in history)
-    assert history[0]["confirmation"]["state"] == "inconclusive"
-    assert history[1]["availability"] == "unavailable"
+    assert runner.count == 3 and len(history) == 1
+    assert history[0]["identity"] == "mismatch_signal" and "confirmation" not in history[0]
 
 
 def test_budget_reservation_is_atomic_and_precedes_inference(settings, store):
@@ -360,7 +348,7 @@ def test_manual_check_can_queue_when_worker_is_offline_and_rejects_paused(settin
 
 
 def test_status_keeps_last_completed_result_while_a_check_runs(settings, store):
-    Worker(replace(settings, confirmation_batches=0), store, FakeRunner(["mismatch"] * 3), FakeAdapter()).check(*run_monitor(store))
+    Worker(settings, store, FakeRunner(["mismatch"] * 3), FakeAdapter()).check(*run_monitor(store))
     completed = store.history("one")[0]
     monitor, _ = run_monitor(store)
     running = store.create_run(monitor, "scheduled", "test-method-v1", {})
@@ -500,7 +488,7 @@ def test_failed_requests_are_not_replaced(settings, store):
 
 
 def test_identity_score_averages_expected_weight_over_full_scheduled_checks(settings, store):
-    worker = Worker(replace(settings, confirmation_batches=0), store, FakeRunner(["match"] * 3 + ["mismatch"] * 3 + ["match", "short", "short"]), FakeAdapter())
+    worker = Worker(settings, store, FakeRunner(["match"] * 3 + ["mismatch"] * 3 + ["match", "short", "short"]), FakeAdapter())
     for _ in range(3):
         worker.check(*run_monitor(store))
     score = snapshot(store, settings)["monitors"][0]["score"]
