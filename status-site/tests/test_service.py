@@ -255,7 +255,8 @@ def test_pause_one_model_preserves_siblings_credentials_and_history(settings, st
     assert client.post(url + "/check", json={}, headers=headers).status_code == 404
     assert client.patch(url, json={"enabled": True}, headers=headers).status_code == 200
     resumed = next(runtime for m, _, runtime in store.targets() if m.id == "one")
-    assert resumed["next_due"] == 0
+    # The queued check was dropped; the next one follows the regular interval.
+    assert resumed["next_due"] > time.time() + 60
     assert len(store.targets()) == 2
     assert client.patch("/api/admin/monitors/missing", json={"enabled": False}, headers=headers).status_code == 404
 
@@ -494,3 +495,13 @@ def test_identity_score_averages_expected_weight_over_full_scheduled_checks(sett
     score = snapshot(store, settings)["monitors"][0]["score"]
     # The check with only one valid sample is left out.
     assert score["checks"] == 2 and abs(score["value"] - .475) < 1e-9
+
+
+def test_editing_a_checked_model_does_not_queue_a_recheck(settings, store):
+    Worker(settings, store, FakeRunner(["match"] * 3), FakeAdapter()).check(*run_monitor(store))
+    provider = store.admin_providers()[0]
+    edited = [m | {"effort": "high"} for m in provider["monitors"]]
+    store.save_provider(provider | {"monitors": edited + [{"model": "gpt-6-sol"}]}, provider["id"])
+    due = {m.id: runtime["next_due"] for m, _, runtime in store.targets()}
+    assert due.pop("one") > time.time() + 60
+    assert list(due.values()) == [0]  # the new model still gets its first check

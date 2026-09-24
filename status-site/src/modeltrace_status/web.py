@@ -35,13 +35,13 @@ def finished(runs):
 
 def run_speed(run):
     """Median TTFT and decode rate over a check's responded probes (None before timing was recorded)."""
-    values = lambda key: [a[key] for a in run["attempts"] if a["outcome"] == "responded" and a.get(key) is not None]
+    values = lambda key: [a[key] for a in (run or {}).get("attempts", []) if a["outcome"] == "responded" and a.get(key) is not None]
     ttft, tps = values("ttft_ms"), values("output_tps")
     return {"ttft_ms": round(median(ttft)) if ttft else None, "output_tps": round(median(tps), 1) if tps else None}
 
 
 def assessed(run):
-    """Scheduled checks with a full sample set (older confirmation re-runs followed mismatches and would double-count them)."""
+    """Scheduled checks with a full sample set; stored confirmation re-runs would double-count mismatches."""
     return (run["kind"] == "scheduled" and run["state"] == "completed" and run.get("expected_weight") is not None
             and run.get("valid_samples", 0) >= run.get("planned_samples", 3))
 
@@ -170,7 +170,7 @@ def snapshot(store, settings, window="24h", now=None):
                         "success_rate": good / (good + failed) if good + failed else None},
         })
     for m in monitors:
-        speed = run_speed(m["latest_completed"]) if m["latest_completed"] else {"ttft_ms": None, "output_tps": None}
+        speed = run_speed(m["latest_completed"])
         group = peers[(m["expected_model"], m["effort"])]
         typical = {key: median(group[key]) if group[key] else None for key in speed}
         m["speed"] = speed | {"typical": typical, "checks": len(group["ttft_ms"]),

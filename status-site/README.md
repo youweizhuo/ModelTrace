@@ -66,8 +66,9 @@ Open `/manage` and sign in using the server's `admin-password` file. You can:
 
 Each model row has its own Pause/Resume control. Provider-level Pause provider/Resume
 provider controls the parent provider; resuming a provider preserves the individual
-models' pause settings. Resuming a model queues a fresh check when its provider
-is enabled. A pause lets the current probe finish, then stops the remaining
+models' pause settings. Resuming a model or provider drops any queued or
+interrupted check; the next check follows the regular interval from the last one
+(or a full interval from now if that time has passed). Use Check to run one now. A pause lets the current probe finish, then stops the remaining
 samples.
 
 Click a provider's name to show its configuration: the base URL and each

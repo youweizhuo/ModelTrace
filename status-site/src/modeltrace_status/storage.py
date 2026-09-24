@@ -121,15 +121,29 @@ class Store:
 
     def set_monitor_enabled(self, monitor_id, enabled):
         with self.connect() as db:
-            result = db.execute("""UPDATE monitors
-                SET next_due=CASE WHEN enabled=0 AND ?=1 THEN 0 ELSE next_due END,
-                    enabled=? WHERE id=?""", (int(enabled), int(enabled), monitor_id))
+            result = db.execute("UPDATE monitors SET enabled=? WHERE id=?", (int(enabled), monitor_id))
+            if enabled:
+                self.reschedule(db, [monitor_id])
             return bool(result.rowcount)
 
     def set_provider_enabled(self, provider_id, enabled):
         with self.connect() as db:
             result = db.execute("UPDATE providers SET enabled=? WHERE id=?", (int(enabled), provider_id))
+            if enabled:
+                self.reschedule(db, [r[0] for r in db.execute("SELECT id FROM monitors WHERE provider_id=?", (provider_id,))])
             return bool(result.rowcount)
+
+    @staticmethod
+    def reschedule(db, ids):
+        """Only the schedule and the manual Check button start checks. Resuming or editing
+        drops a queued or interrupted check: the next one is an interval after the last,
+        or a full interval from now if that time has passed."""
+        now = time.time()
+        for mid in ids:
+            interval, last = db.execute("""SELECT m.interval, max(r.started_at) FROM monitors m
+                LEFT JOIN runs r ON r.monitor_id=m.id WHERE m.id=?""", (mid,)).fetchone()
+            due = last + interval if last and last + interval > now else now + interval
+            db.execute("UPDATE monitors SET next_due=? WHERE id=?", (due, mid))
 
     def reserve_attempt(self, monitor_id, run_id, budget, now=None):
         now = now or time.time()
@@ -254,12 +268,11 @@ class Store:
                 if mid in kept:
                     raise ValueError("Duplicate monitor ID")
                 kept.add(mid)
-                previous = old.get(mid)
-                same = previous and not changed and all(previous[k] == v for k, v in {"model": model, "expected_model": expected, "channel": channel, "effort": effort, "interval": interval, "enabled": enabled}.items())
-                due = previous["next_due"] if same else 0
-                db.execute("INSERT OR REPLACE INTO monitors VALUES(?,?,?,?,?,?,?,?,?)", (mid, provider_id, model, expected, channel, effort, interval, enabled, due))
+                # A new monitor is due at once for its first result; edited ones keep their schedule.
+                db.execute("INSERT OR REPLACE INTO monitors VALUES(?,?,?,?,?,?,?,?,?)", (mid, provider_id, model, expected, channel, effort, interval, enabled, 0))
             for mid in old.keys() - kept:
                 db.execute("DELETE FROM monitors WHERE id=?", (mid,))
+            self.reschedule(db, kept & old.keys())
         return provider_id
 
     def delete_provider(self, pid):
