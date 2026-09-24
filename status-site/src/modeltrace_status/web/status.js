@@ -261,8 +261,8 @@ function speedCell(v) {
   if (!speedText(s)) return '';
   const title = `Median of the latest check’s probes. ${typicalSpeed(v.m)}.`;
   return html`<div class="speed" title="${title}">
-    <div>${s.ttft_ms != null ? html`<span class="num speed-value tone-${s.ttft_tone}">${seconds(s.ttft_ms)}</span> <span class="muted">TTFT</span>` : ''}</div>
-    <div>${s.output_tps != null ? html`<span class="num speed-value tone-${s.tps_tone}">${rate(s.output_tps)}</span> <span class="muted">tok/s</span>` : ''}</div>
+    <div>${s.ttft_ms != null ? html`<span class="muted speed-label">TTFT</span><span class="num speed-value tone-${s.ttft_tone}">${seconds(s.ttft_ms)}</span>` : ''}</div>
+    <div>${s.output_tps != null ? html`<span class="muted speed-label">TPS</span><span class="num speed-value tone-${s.tps_tone}">${rate(s.output_tps)}</span>` : ''}</div>
   </div>`;
 }
 

@@ -244,6 +244,7 @@ main.page { padding-bottom: 8px; }
 .score { font-size: 12.5px; }
 .speed { display: grid; gap: 2px; }
 .speed-value { color: var(--tone, var(--fg)); font-weight: 600; }
+.speed-label { display: inline-block; width: 34px; }
 .speed-kpis { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 8px; }
 .speed-kpi { display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
 
