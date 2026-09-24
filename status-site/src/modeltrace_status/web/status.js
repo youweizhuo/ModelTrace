@@ -89,13 +89,19 @@ function matches(v) {
   return ui.query.split(/\s+/).every(term => haystack.includes(term));
 }
 
+// Best score first; monitors without one stay last in either direction.
+function byScore(a, b) {
+  if (a == null || b == null) return (a == null) - (b == null);
+  return ui.reverse ? a - b : b - a;
+}
+
 function compare(a, b) {
   const byName = a.name.localeCompare(b.name);
+  if (ui.sort === 'score') return byScore(a.m.score.value, b.m.score.value) || byName;
   let result;
   switch (ui.sort) {
     case 'monitor': result = byName; break;
     case 'checked': result = (a.checkedAt || Infinity) - (b.checkedAt || Infinity); break;
-    case 'score': result = (a.m.score.value ?? Infinity) - (b.m.score.value ?? Infinity); break;
     default: result = a.severity - b.severity;
   }
   return (ui.reverse ? -result : result) || byName;
@@ -176,7 +182,8 @@ function renderRows(views) {
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(v);
   }
-  patch(container, [...groups].map(([label, items]) => html`
+  const ordered = ui.sort === 'score' ? [...groups].sort(([, a], [, b]) => byScore(groupScoreValue(a), groupScoreValue(b))) : [...groups];
+  patch(container, ordered.map(([label, items]) => html`
     <section class="group" aria-label="${label || 'Monitors'}">
       ${ui.group === 'none' ? '' : html`<h2 class="group-head"><span class="group-name">${stateDots(items)}${label}</span>${groupScore(items)}</h2>`}
       <ul class="rows" role="list">${items.map(row)}</ul>
@@ -195,10 +202,15 @@ function scoreCell(score, subject) {
 }
 
 // Each monitor counts once, however often it is checked.
+function groupScoreValue(items) {
+  const scored = items.filter(v => v.m.score.value != null);
+  return scored.length ? scored.reduce((n, v) => n + v.m.score.value, 0) / scored.length : null;
+}
+
 function groupScore(items) {
   const scored = items.filter(v => v.m.score.value != null);
   if (!scored.length) return '';
-  const value = scored.reduce((n, v) => n + v.m.score.value, 0) / scored.length;
+  const value = groupScoreValue(items);
   return html`<span class="group-score">${scoreCell({value, checks: scored.reduce((n, v) => n + v.m.score.checks, 0)}, `Average of ${scored.length} model${scored.length === 1 ? '' : 's'} over`)}</span>`;
 }
 
@@ -262,7 +274,7 @@ function speedCell(v) {
   const title = `Median of the latest check’s probes. ${typicalSpeed(v.m)}.`;
   return html`<div class="speed" title="${title}">
     <div>${s.ttft_ms != null ? html`<span class="muted speed-label">TTFT</span><span class="num speed-value tone-${s.ttft_tone}">${seconds(s.ttft_ms)}</span>` : ''}</div>
-    <div>${s.output_tps != null ? html`<span class="muted speed-label">TPS</span><span class="num speed-value tone-${s.tps_tone}">${rate(s.output_tps)}</span>` : ''}</div>
+    <div>${s.output_tps != null ? html`<span class="muted speed-label">TPS</span><span class="num speed-value tone-${s.tps_tone}">${rate(s.output_tps)}</span> <span class="muted">tok/s</span>` : ''}</div>
   </div>`;
 }
 
