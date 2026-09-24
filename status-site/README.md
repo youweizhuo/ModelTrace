@@ -130,15 +130,14 @@ count against the daily budget. If the budget has no room, the batch is assessed
 without the replacement. Failed requests are never replaced.
 
 A mismatch triggers no extra checks; the next scheduled check is the follow-up.
-Older results may still show "Repeated mismatch" from the removed confirmation
-batches. Thresholds are inherited heuristics, not newly calibrated accuracy guarantees.
+Thresholds are inherited heuristics, not newly calibrated accuracy guarantees.
 
 Each check records the scorer and bank hashes, upstream Git revision, probe
 profile, assessment policy, Codex version, and monitor configuration revision.
 The checker version is derived from the scorer and bank hashes, probe profile and
 policy only, so repository commits that leave those unchanged keep current results.
 Monitors appear in a dense table, one card per provider (or per expected model,
-or ungrouped): identity, identity score, closest reference model with its relative weight
+or ungrouped): identity with its score beneath, closest reference model with its relative weight
 (from the latest check, with a meter colored by the identity result), speed,
 history and last/next check. A check in progress is shown next to the last
 completed result rather than replacing it. Rows can be filtered by state or text

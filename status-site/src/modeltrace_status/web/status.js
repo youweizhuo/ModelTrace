@@ -152,8 +152,7 @@ function renderHead() {
   const sortButton = (key, label) => html`<button type="button" class="sort" data-sort="${key}" data-key="sort:${key}" aria-pressed="${ui.sort === key}" aria-label="Sort by ${label}${ui.sort === key ? (ui.reverse ? ', reversed' : '') : ''}">${label}<span class="sort-mark" aria-hidden="true">${ui.sort === key ? (ui.reverse ? '↑' : '↓') : ''}</span></button>`;
   patch($('#table-head'), html`
     <div class="c-monitor">${sortButton('monitor', 'Monitor')}</div>
-    <div class="c-identity">${sortButton('severity', 'Identity')}</div>
-    <div class="c-score" title="Average weight the fingerprint gave the expected model over fully assessed scheduled checks in ${WINDOW_LABEL[ui.window]}">${sortButton('score', 'Score')}</div>
+    <div class="c-identity">${sortButton('severity', 'Identity')}<span class="head-sep" aria-hidden="true">·</span><span title="Average weight the fingerprint gave the expected model over fully assessed scheduled checks in ${WINDOW_LABEL[ui.window]}">${sortButton('score', 'Score')}</span></div>
     <div class="c-closest"><span class="head-label">Closest match</span></div>
     <div class="c-speed" title="Latest check: time to first token and answer decode rate. Colored against checks of the same model and reasoning in this window."><span class="head-label">Speed</span></div>
     <div class="c-history" title="History · ${WINDOW_LABEL[ui.window]}">${timeAxis()}</div>
@@ -187,7 +186,7 @@ function renderRows(views) {
 const scoreTone = value => value >= .8 ? 'good' : value >= .5 ? 'warn' : 'bad';
 
 function scoreCell(score, subject) {
-  if (score?.value == null) return html`<span class="muted">—</span>`;
+  if (score?.value == null) return '';
   const title = `${subject} ${score.checks} assessed check${score.checks === 1 ? '' : 's'} in ${WINDOW_LABEL[ui.window]}`;
   return html`<div class="score tone-${scoreTone(score.value)}" title="${title}">
     <span class="num">${percent(score.value)}</span>
@@ -222,8 +221,7 @@ function row(v) {
       </button>
       ${meta ? html`<div class="sub">${meta}</div>` : ''}
     </div>
-    <div class="c-identity">${identityCell(v)}</div>
-    <div class="c-score">${scoreCell(v.m.score, `${v.m.expected_model} over`)}</div>
+    <div class="c-identity">${identityCell(v)}${scoreCell(v.m.score, `${v.m.expected_model} over`)}</div>
     <div class="c-closest">${closestCell(v)}</div>
     <div class="c-speed">${speedCell(v)}</div>
     <div class="c-history">${bars(v)}</div>

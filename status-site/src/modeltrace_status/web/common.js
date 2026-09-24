@@ -46,8 +46,8 @@ export function patch(element, markup) {
 
 export const STATES = {
   consistent: {label: 'Consistent', tone: 'good'},
-  mismatch_signal: {label: 'Mismatch signal', tone: 'bad'},
-  repeated_mismatch: {label: 'Repeated mismatch', tone: 'bad'},
+  mismatch_signal: {label: 'Mismatch', tone: 'bad'},
+  repeated_mismatch: {label: 'Mismatch', tone: 'bad'},  // stored by the removed confirmation batches
   inconclusive: {label: 'Inconclusive', tone: 'info'},
   not_in_library: {label: 'Not in library', tone: 'warn'},
   unknown: {label: 'No result', tone: 'none'},
