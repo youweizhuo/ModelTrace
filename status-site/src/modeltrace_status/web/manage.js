@@ -113,7 +113,7 @@ function hostLabel(url) {
 
 function providerCard(p) {
   const checkable = p.enabled && p.monitors.some(m => m.enabled);
-  return html`<article class="provider-card${p.enabled ? '' : ' is-paused'}" aria-labelledby="provider-${p.id}">
+  return html`<article class="provider-card${p.enabled ? '' : ' is-paused paused-rail'}" aria-labelledby="provider-${p.id}">
     <header class="provider-head">
       <div class="provider-title">
         <h2 class="provider-name" id="provider-${p.id}">${p.name}</h2>
@@ -143,7 +143,7 @@ function modelRow(p, m) {
     m.channel !== 'Standard' ? m.channel : null,
     m.expected_model !== m.model ? `expects ${m.expected_model}` : null,
   ].filter(Boolean).join(' · ');
-  return html`<div class="model-row${m.enabled && p.enabled ? '' : ' is-paused'}">
+  return html`<div class="model-row${m.enabled && p.enabled ? '' : ' is-paused paused-rail'}">
     <div class="m-model"><span class="mono">${m.model}</span><div class="sub">${settings}</div></div>
     <div class="m-identity" data-identity="${m.id}"></div>
     <div class="m-activity" data-activity="${m.id}" aria-live="polite"></div>

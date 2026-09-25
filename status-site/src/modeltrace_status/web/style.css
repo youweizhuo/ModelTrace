@@ -94,12 +94,19 @@ a { color: inherit; }
 .tone-warn { --tone: var(--warn); --tone-soft: var(--warn-soft); }
 .tone-none { --tone: var(--none); --tone-soft: var(--none-soft); }
 .tone-outage { --tone: var(--bad); --tone-soft: var(--bad-soft); }
+.tone-paused { --tone: var(--muted); --tone-soft: transparent; }
 
 .dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--tone, var(--none)); }
 /* Outages are hollow: shape, not just hue, separates them from mismatches. */
 .tone-outage .dot, .dot.tone-outage { background: transparent; box-shadow: inset 0 0 0 2px var(--bad); }
+/* Paused is a choice, not a result: a pause glyph where results show a dot, and a double rail where they show a bar. */
+.tone-paused .dot, .dot.tone-paused { border-radius: 1px; background: linear-gradient(90deg, var(--muted) 0 3px, transparent 3px 5px, var(--muted) 5px); }
+.paused-rail { position: relative; }
+.paused-rail::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: linear-gradient(90deg, var(--muted) 0 2px, transparent 2px 4px, var(--muted) 4px); }
 
 .badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 8px; border-radius: 3px; background: var(--tone-soft); font-size: 12.5px; font-weight: 550; line-height: 18px; white-space: nowrap; }
+.badge.tone-paused { box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--muted); }
+.paused-note { display: inline-flex; align-items: center; gap: 6px; }
 .tag { display: inline-block; padding: 0 6px; margin-left: 6px; border: 1px solid var(--line-strong); border-radius: 4px; font-size: 11px; line-height: 16px; color: var(--muted); vertical-align: 1px; }
 
 /* -------------------------------------------------------------- controls */
@@ -222,7 +229,9 @@ main.page { padding-bottom: 8px; }
 .row.mark-warn { --mark: var(--warn); }
 .row.mark-outage::before { background: repeating-linear-gradient(180deg, var(--bad) 0 3px, transparent 3px 6px); }
 .row.is-stale::before { opacity: .45; }
-.row.is-paused .c-monitor .monitor-link, .row.is-paused .c-closest { opacity: .6; }
+.row.is-paused::before { width: 6px; background: linear-gradient(90deg, var(--muted) 0 2px, transparent 2px 4px, var(--muted) 4px); }
+.row.is-paused .c-monitor .monitor-link { opacity: .7; }
+.row.is-paused .c-identity, .row.is-paused .c-closest, .row.is-paused .c-speed, .row.is-paused .c-history { opacity: .4; }
 
 .monitor-link { max-width: 100%; padding: 0; border: 0; background: none; font-weight: 600; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
 .monitor-link:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -403,7 +412,7 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
 .page-head p { margin-top: 2px; color: var(--muted); font-size: 13px; }
 .page-head .actions { display: flex; align-items: center; gap: 8px; }
 
-.provider-card { margin-bottom: 16px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.provider-card { position: relative; margin-bottom: 16px; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
 .provider-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; min-height: 52px; padding: 8px 12px 8px 16px; }
 .provider-title { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; min-width: 0; }
 .provider-name { font-size: 15px; font-weight: 650; overflow-wrap: anywhere; }
@@ -425,7 +434,10 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
 }
 .model-row:last-child { border-radius: 0 0 6px 6px; }
 .model-row:hover { background: var(--surface-2); }
-.is-paused.model-row .m-model, .is-paused.model-row .m-identity { opacity: .55; }
+.is-paused.model-row .m-model, .is-paused.model-row .m-identity { opacity: .5; }
+.provider-card.is-paused .provider-name, .provider-card.is-paused .provider-host { opacity: .6; }
+/* A paused provider's rail runs the whole card, so its rows don't repeat it. */
+.provider-card.is-paused .model-row::before { content: none; }
 .m-model { grid-area: model; min-width: 0; overflow-wrap: anywhere; }
 .m-model .mono { font-weight: 550; }
 .m-identity { grid-area: identity; min-width: 0; }

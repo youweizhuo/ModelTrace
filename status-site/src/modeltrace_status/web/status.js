@@ -26,7 +26,7 @@ const SEVERITY = {
 const FILTERS = [
   ['all', 'All', null], ['mismatch', 'Mismatch', 'bad'], ['unavailable', 'Unavailable', 'outage'],
   ['inconclusive', 'Inconclusive', 'info'], ['other', 'Other', 'warn'], ['consistent', 'Consistent', 'good'],
-  ['paused', 'Paused', 'none'],
+  ['paused', 'Paused', 'paused'],
 ];
 
 function category(state) {
@@ -217,8 +217,10 @@ function groupScore(items) {
 // One dot per model, in row order, so a provider whose models disagree is visible at a glance.
 function stateDots(items) {
   const label = items.map(v => `${v.m.model}: ${stateLabel(v.current).toLowerCase()}`).join(', ');
-  return html`<span class="state-dots" role="img" aria-label="${label}" title="${label}">${items.map(v => html`<i class="dot tone-${v.m.enabled ? stateTone(v.current) : 'none'}"></i>`)}</span>`;
+  return html`<span class="state-dots" role="img" aria-label="${label}" title="${label}">${items.map(v => html`<i class="dot tone-${v.m.enabled ? stateTone(v.current) : 'paused'}"></i>`)}</span>`;
 }
+
+const pausedNote = html`<span class="paused-note"><i class="dot tone-paused" aria-hidden="true"></i>paused</span>`;
 
 function row(v) {
   const {m, done, top, active} = v;
@@ -226,7 +228,7 @@ function row(v) {
   // Settings live in the drawer subtitle and on /manage; rows only carry what changes the reading.
   const meta = [m.channel !== 'Standard' ? m.channel : null,
     m.expected_model !== m.model ? `expects ${m.expected_model}` : null].filter(Boolean).join(' · ');
-  const mark = m.enabled ? stateTone(v.current) : 'none';
+  const mark = m.enabled ? stateTone(v.current) : 'paused';
   const dim = m.enabled && v.flag === 'stale' ? ' is-stale' : '';
   return html`<li class="row cat-${v.category} mark-${mark}${dim}${m.enabled ? '' : ' is-paused'}">
     <div class="c-monitor">
@@ -242,7 +244,7 @@ function row(v) {
     <div class="c-history">${bars(v)}</div>
     <div class="c-checked">
       ${done ? html`<span data-ago="${v.checkedAt}" title="${formatFull(v.checkedAt)}"></span>` : html`<span class="muted">never</span>`}
-      <div class="sub">${active ? 'checking now' : !m.enabled ? 'paused' : m.next_due ? html`next <span data-until="${m.next_due}"></span>` : 'queued'}</div>
+      <div class="sub">${active ? 'checking now' : !m.enabled ? pausedNote :  m.next_due ? html`next <span data-until="${m.next_due}"></span>` : 'queued'}</div>
     </div>
   </li>`;
 }

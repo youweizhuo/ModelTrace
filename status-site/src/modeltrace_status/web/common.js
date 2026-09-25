@@ -52,7 +52,7 @@ export const STATES = {
   not_in_library: {label: 'Not in library', tone: 'warn'},
   unknown: {label: 'No result', tone: 'none'},
   unavailable: {label: 'Unavailable', tone: 'outage'},
-  paused: {label: 'Paused', tone: 'none'},
+  paused: {label: 'Paused', tone: 'paused'},
   stale: {label: 'Stale', tone: 'none'},
   changed: {label: 'Awaiting check', tone: 'none'},
   checker_error: {label: 'Checker error', tone: 'warn'},
