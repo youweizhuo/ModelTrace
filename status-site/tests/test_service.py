@@ -7,7 +7,7 @@ from dataclasses import replace
 
 import pytest
 
-from modeltrace_status.web import create_app, score_weight, snapshot
+from modeltrace_status.web import create_app, period_identity, score_weight, snapshot
 from modeltrace_status.worker import Worker
 
 
@@ -20,11 +20,12 @@ class FakeAdapter:
         return [{"prompt": "fixture", "expected_count": 300} for _ in range(3)]
 
     def assess(self, outputs, expected):
+        diagnostics = [{"index": i, "accepted": o["text"] != "short"} for i, o in enumerate(outputs)]
         outputs = [o for o in outputs if o["text"] != "short"]
         mismatch = len(outputs) == 3 and all(o["text"] == "mismatch" for o in outputs)
         return {"identity": "mismatch_signal" if mismatch else "consistent" if len(outputs) == 3 else "inconclusive" if outputs else "unknown",
                 "candidates": [{"model": "gpt-6-sol" if mismatch else expected, "weight": .9}] if outputs else [], "valid_samples": len(outputs),
-                "expected_weight": (.05 if mismatch else .9) if outputs else None}
+                "expected_weight": (.05 if mismatch else .9) if outputs else None, "diagnostics": diagnostics}
 
 
 class FakeRunner:
@@ -271,6 +272,29 @@ def test_pausing_during_a_probe_stops_remaining_samples(settings, store):
     assert latest["state"] == "interrupted" and latest["identity"] == "unknown"
 
 
+@pytest.mark.parametrize("identities, expected", [
+    (["consistent", "consistent", "inconclusive"], "consistent"),
+    (["consistent", "inconclusive"], "inconclusive"),
+    (["consistent", "consistent", "mismatch_signal"], "inconclusive"),  # an outvoted mismatch still blocks consistent
+    (["consistent", "mismatch_signal"], "mismatch_signal"),  # ties take the worse result
+    (["inconclusive", "inconclusive", "mismatch_signal"], "mismatch_signal"),
+    (["consistent", "consistent", "unknown", "unknown"], "consistent"),  # no verdict, no vote
+    (["not_in_library", "unknown"], "not_in_library"),
+    ([], None),
+])
+def test_period_colour_is_a_vote_over_every_check(identities, expected):
+    runs = [{"identity": i, "kind": "scheduled", "availability": "available"} for i in identities]
+    assert period_identity(runs) == expected
+
+
+def test_period_without_a_verdict_shows_no_usable_answer_or_no_result():
+    runs = [{"identity": "unknown", "kind": "scheduled", "availability": a} for a in ("unknown", "unavailable")]
+    assert period_identity(runs) == "unavailable"
+    assert period_identity(runs[:1]) == "unknown"
+    confirmation = {"identity": "mismatch_signal", "kind": "confirmation", "availability": "available"}
+    assert period_identity([{"identity": "consistent", "kind": "scheduled", "availability": "available"}, confirmation]) == "consistent"
+
+
 def test_history_color_uses_latest_finished_result_and_keeps_earlier_checks(settings, store):
     monitor, _ = run_monitor(store)
     now = (time.time() // 3600 - 1) * 3600 + 1800  # mid-hour and in the past, so every record lands in the last period
@@ -452,7 +476,13 @@ def test_short_response_is_scored_without_a_retry(settings, store):
     assert runner.count == 3
     assert run["identity"] == "inconclusive" and run["valid_samples"] == 2
     assert run["planned_samples"] == 3 and "planned_probes" not in run
-    assert run["availability"] == "available"
+    # An answer too short to fingerprint counts against availability.
+    assert run["availability"] == "partial"
+    m = snapshot(store, settings)["monitors"][0]
+    assert m["metrics"]["outcomes"] == {"responded": 2, "unusable": 1}
+    assert m["metrics"]["success_rate"] == 2 / 3
+    bucket = next(b for b in m["history"] if b["runs"])
+    assert (bucket["usable"], bucket["failed"], bucket["availability"]) == (2, 1, "partial")
 
 
 def store_attempts(store):

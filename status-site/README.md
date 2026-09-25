@@ -125,8 +125,8 @@ outside the bank is explicitly marked as unsupported.
 
 A response that arrives but is too short to score (upstream requires
 `max(80, ⌈0.55 × requested count⌉)` parsed numbers; refusals and truncated answers
-fail this) is not an availability failure. It is recorded and shown in the
-check's evidence, and the batch is assessed on the samples it has. Every check
+fail this) is recorded and shown in the check's evidence, counts against
+availability, and the batch is assessed on the samples it has. Every check
 sends exactly three probes: nothing is retried or replaced.
 
 A mismatch triggers no extra checks; the next scheduled check is the follow-up.
@@ -191,10 +191,12 @@ each check's probe median, colored against the median of all checks for the same
 expected model and reasoning effort in the selected window (green within 1.25×,
 amber within 2×, red beyond). Checks recorded before timing was added show none.
 
-Availability is **successful Codex probes / probes with observed provider
-outcomes**, not continuous uptime. Credential errors, rate/quota errors, upstream
-errors and timeouts remain distinguishable. Local runner failures are monitoring
-gaps. Invalid fingerprint samples can still have successful API responses.
+Availability is **usable probes / probes with observed provider outcomes**, not
+continuous uptime. A probe is usable when it answered and the fingerprint parser
+accepted the answer; a refusal or truncated list counts against availability like
+a failed request. Credential errors, rate/quota errors, upstream errors, timeouts
+and unusable answers remain distinguishable. Local runner failures are monitoring
+gaps.
 Daily budgets count started CLI probes, including failures;
 the default is 120 probes per monitor per UTC day. Hidden behavior inside an
 upstream gateway is outside this request budget. Durations include CLI overhead;

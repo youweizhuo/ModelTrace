@@ -146,8 +146,46 @@ def diagnose(message="", outcome="runner_error", http_status=None):
     return {"outcome": category, "diagnostic": diagnostic}
 
 
+# Probe outcomes that count against availability. An answer the scorer rejected
+# (a refusal or a truncated list) reached the provider but gave the check nothing.
+FAILURES = {"provider_error", "auth_error", "rate_limit", "timeout", "unusable"}
+
+
+def probe_outcomes(run):
+    """Each probe's outcome, with responses the scorer rejected marked `unusable`."""
+    diagnostics = run.get("diagnostics") or []
+    # Older runs dropped the diagnostics when upstream found no usable answer at all.
+    none_usable = not diagnostics and run.get("identity") == "inconclusive" and not run.get("valid_samples")
+    rejected = {d["index"] for d in diagnostics if d.get("accepted") is False}
+    outcomes, responded = [], 0
+    for attempt in run["attempts"]:
+        outcome = attempt["outcome"]
+        if outcome == "responded":
+            if none_usable or responded in rejected:
+                outcome = "unusable"
+            responded += 1  # scorer diagnostics are indexed over responded probes only
+        outcomes.append(outcome)
+    return outcomes
+
+
+def availability(usable, failed):
+    if usable and not failed:
+        return "available"
+    if usable:
+        return "partial"
+    return "unavailable" if failed else "unknown"
+
+
+def run_availability(run):
+    outcomes = probe_outcomes(run)
+    return availability(outcomes.count("responded"), sum(o in FAILURES for o in outcomes))
+
+
 def with_explanations(run):
     for attempt in run["attempts"]:
         if attempt["outcome"] != "responded" and not attempt.get("diagnostic"):
             attempt["diagnostic"] = diagnose(outcome=attempt["outcome"], http_status=attempt.get("http_status"))["diagnostic"]
+    # Recomputed on read, so stored runs follow the current availability rule.
+    if run["state"] != "running" and run["attempts"]:
+        run["availability"] = run_availability(run)
     return run

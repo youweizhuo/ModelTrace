@@ -9,27 +9,16 @@ from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlsplit
 
 from .codex_runner import CodexRunner
+from .diagnostics import run_availability
 from .storage import Store
 from .upstream_adapter import UpstreamAdapter
 
 log = logging.getLogger(__name__)
-FAILURES = {"provider_error", "auth_error", "rate_limit", "timeout"}
 
 
 def endpoint_group(base_url):
     url = urlsplit(base_url)
     return (url.scheme.lower(), url.hostname, url.port or (443 if url.scheme == "https" else 80))
-
-
-def availability(attempts):
-    outcomes = [a["outcome"] for a in attempts]
-    good = outcomes.count("responded")
-    bad = sum(o in FAILURES for o in outcomes)
-    if good and not bad:
-        return "available"
-    if good:
-        return "partial"
-    return "unavailable" if bad else "unknown"
 
 
 class Worker:
@@ -87,7 +76,7 @@ class Worker:
                     outputs.append({"text": outcome["text"], "expected_count": challenge["expected_count"]})
                 self.store.save_run(run, evidence)
             run.update(adapter.assess(outputs, monitor.expected_model))
-            run["availability"] = availability(run["attempts"])
+            run["availability"] = run_availability(run)
             if run["state"] == "running":
                 run["state"] = "completed"
             else:

@@ -15,7 +15,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from .config import load_settings
 from .storage import Store
 from .upstream_adapter import method_version
-from .worker import FAILURES
+from .diagnostics import FAILURES, availability, probe_outcomes
 
 WINDOWS = {"24h": (86400, 24), "7d": (604800, 28), "30d": (2592000, 30)}
 ASSETS = ("common.js", "status.js", "manage.js", "style.css", "icon.svg")
@@ -120,6 +120,33 @@ def secret_file(path, generate):
 
 
 BUCKET_CHECKS = 6  # most recent checks kept per history period
+MISMATCHES = {"mismatch_signal", "repeated_mismatch"}
+
+
+def period_verdicts(runs):
+    """How a period's checks voted. Stored confirmation re-runs would double-count mismatches."""
+    identities = Counter(run["identity"] for run in runs if run["kind"] != "confirmation")
+    votes = {"consistent": identities["consistent"], "mismatch": sum(identities[k] for k in MISMATCHES),
+             "inconclusive": identities["inconclusive"]}
+    return {key: n for key, n in votes.items() if n}
+
+
+def period_identity(runs):
+    """One colour for every check in a period. Consistent needs a strict majority and
+    no mismatch at all. A mismatch outvoted by consistent checks makes the period
+    inconclusive; otherwise it shows, since it clears far stricter thresholds than an
+    inconclusive result. Ties read as the worse result."""
+    if not runs:
+        return None
+    votes = period_verdicts(runs)
+    good, bad, unsure = votes.get("consistent", 0), votes.get("mismatch", 0), votes.get("inconclusive", 0)
+    if good + bad + unsure:
+        if good > bad + unsure:
+            return "inconclusive" if bad else "consistent"
+        return "mismatch_signal" if bad else "inconclusive"
+    if any(run["identity"] == "not_in_library" for run in runs):
+        return "not_in_library"
+    return "unavailable" if any(run["availability"] == "unavailable" for run in runs) else "unknown"
 
 
 def snapshot(store, settings, window="24h", now=None, utc_offset=0):
@@ -151,28 +178,38 @@ def snapshot(store, settings, window="24h", now=None, utc_offset=0):
         weights = []
         buckets = [{"start": since + i * seconds / count, "end": since + (i + 1) * seconds / count,
                     "runs": 0, "latest_id": None,
-                    "latest_identity": None, "latest_availability": None, "checks": [], "versions": []} for i in range(count)]
+                    "latest_identity": None, "latest_availability": None, "usable": 0, "failed": 0,
+                    "checks": [], "versions": []} for i in range(count)]
+        periods = [[] for _ in buckets]
         for run in reversed(rows):
             if run["state"] == "running":
                 continue
             identity = run["identity"]
             assessments[identity] += 1
-            outcomes.update(a["outcome"] for a in run["attempts"])
+            probes = probe_outcomes(run)
+            outcomes.update(probes)
             scheduled += run["kind"] == "scheduled"
             if assessed(run):
                 weights.append(score_weight(run))
             i = min(count - 1, max(0, int((run["started_at"] - since) / seconds * count)))
             bucket = buckets[i]
+            periods[i].append(run)
             bucket["runs"] += 1
             bucket["latest_id"] = run["id"]
             bucket["latest_identity"] = identity
             bucket["latest_availability"] = run["availability"]
+            bucket["usable"] += probes.count("responded")
+            bucket["failed"] += sum(o in FAILURES for o in probes)
             bucket["checks"] = bucket["checks"][1 - BUCKET_CHECKS:] + [run_summary(run)]
             for key, value in run_speed(run).items():
                 if value is not None:
                     peers[(monitor.expected_model, monitor.effort)][key].append(value)
             if run_method(run) not in bucket["versions"]:
                 bucket["versions"].append(run_method(run))
+        for bucket, runs in zip(buckets, periods):
+            bucket["identity"] = period_identity(runs)
+            bucket["verdicts"] = period_verdicts(runs)
+            bucket["availability"] = availability(bucket["usable"], bucket["failed"]) if bucket["runs"] else None
         good = outcomes["responded"]
         failed = sum(outcomes[key] for key in FAILURES)
         monitors.append(monitor.public() | {

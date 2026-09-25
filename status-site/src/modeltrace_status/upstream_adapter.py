@@ -63,7 +63,9 @@ class UpstreamAdapter:
         try:
             result = self.module.analyze_global_outputs(outputs, self.bank)
         except ValueError:
-            return {"identity": "inconclusive", "candidates": [], "valid_samples": 0, "diagnostics": []}
+            # Upstream found no usable answer; record that each one was rejected.
+            return {"identity": "inconclusive", "candidates": [], "valid_samples": 0,
+                    "diagnostics": [{"index": i, "accepted": False} for i in range(len(outputs))]}
         candidates = [{"model": r["model"], "weight": float(r["probability"])} for r in result["results"]]
         if not candidates or any(not math.isfinite(c["weight"]) for c in candidates):
             raise ValueError("Upstream result schema or weights changed")
