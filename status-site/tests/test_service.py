@@ -7,7 +7,7 @@ from dataclasses import replace
 
 import pytest
 
-from modeltrace_status.web import create_app, snapshot
+from modeltrace_status.web import create_app, score_weight, snapshot
 from modeltrace_status.worker import Worker
 
 
@@ -495,6 +495,13 @@ def test_identity_score_averages_expected_weight_over_scheduled_checks(settings,
     score = snapshot(store, settings)["monitors"][0]["score"]
     # A check with a single valid sample still counts.
     assert score["checks"] == 3 and abs(score["value"] - (.9 + .05 + .9) / 3) < 1e-9
+
+
+def test_sol_score_pools_gpt_5_5_but_other_models_keep_their_own_weight():
+    candidates = [{"model": "gpt-5.5", "weight": .5}, {"model": "gpt-6-sol", "weight": .3}, {"model": "gpt-6-luna", "weight": .2}]
+    sol = {"monitor": {"expected_model": "gpt-6-sol"}, "candidates": candidates, "expected_weight": .3}
+    luna = {"monitor": {"expected_model": "gpt-6-luna"}, "candidates": candidates, "expected_weight": .2}
+    assert abs(score_weight(sol) - .8) < 1e-9 and score_weight(luna) == .2
 
 
 def test_editing_a_checked_model_does_not_queue_a_recheck(settings, store):

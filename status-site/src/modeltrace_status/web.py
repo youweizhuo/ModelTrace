@@ -46,6 +46,19 @@ def assessed(run):
     return run["kind"] == "scheduled" and run["state"] == "completed" and run.get("expected_weight") is not None
 
 
+# ModelTrace's author notes these fingerprints look nearly identical, so the
+# identity score counts either as the expected model.
+SCORE_ALIASES = {"gpt-6-sol": ("gpt-6-sol", "gpt-5.5")}
+
+
+def score_weight(run):
+    """The expected model's weight in one check, pooled with its look-alikes."""
+    models = SCORE_ALIASES.get(run["monitor"].get("expected_model"))
+    if not models:
+        return run["expected_weight"]
+    return sum(c["weight"] for c in run.get("candidates") or [] if c["model"] in models)
+
+
 def speed_tone(value, typical, higher_is_better=False):
     if value is None or typical is None:
         return None
@@ -147,7 +160,7 @@ def snapshot(store, settings, window="24h", now=None, utc_offset=0):
             outcomes.update(a["outcome"] for a in run["attempts"])
             scheduled += run["kind"] == "scheduled"
             if assessed(run):
-                weights.append(run["expected_weight"])
+                weights.append(score_weight(run))
             i = min(count - 1, max(0, int((run["started_at"] - since) / seconds * count)))
             bucket = buckets[i]
             bucket["runs"] += 1
