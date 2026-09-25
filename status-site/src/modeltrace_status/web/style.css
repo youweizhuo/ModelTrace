@@ -104,8 +104,14 @@ a { color: inherit; }
 .paused-rail { position: relative; }
 .paused-rail::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: linear-gradient(90deg, var(--muted) 0 2px, transparent 2px 4px, var(--muted) 4px); }
 
-.badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 8px; border-radius: 3px; background: var(--tone-soft); font-size: 12.5px; font-weight: 550; line-height: 18px; white-space: nowrap; }
-.badge.tone-paused { box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--muted); }
+/* A state reads as a short rail and its name, like the edge of its table row. */
+.badge { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; line-height: 18px; white-space: nowrap; }
+.badge .dot { width: 3px; height: 16px; border-radius: 2px; }
+.badge.tone-outage .dot { box-shadow: none; background: repeating-linear-gradient(180deg, var(--bad) 0 3px, transparent 3px 5px); }
+.badge.tone-paused { color: var(--muted); }
+.badge.tone-paused .dot { width: 6px; border-radius: 0; background: linear-gradient(90deg, var(--muted) 0 2px, transparent 2px 4px, var(--muted) 4px); }
+.drawer .badge { font-size: 15px; }
+.drawer .badge .dot { height: 18px; }
 .paused-note { display: inline-flex; align-items: center; gap: 6px; }
 .tag { display: inline-block; padding: 0 6px; margin-left: 6px; border: 1px solid var(--line-strong); border-radius: 4px; font-size: 11px; line-height: 16px; color: var(--muted); vertical-align: 1px; }
 
@@ -138,12 +144,16 @@ input[aria-invalid="true"] { border-color: var(--bad); }
 .segmented button:hover { color: var(--fg); }
 .segmented button[aria-pressed="true"] { background: var(--pressed); color: var(--fg); font-weight: 600; }
 
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 0 11px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); font-size: 13px; cursor: pointer; }
-.chip:hover { border-color: var(--line-strong); }
-.chip .count { color: var(--muted); font-variant-numeric: tabular-nums; }
-.chip[aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: var(--surface); }
-.chip[aria-pressed="true"] .count { color: inherit; opacity: .75; }
+/* State filters are the table's own tabs. The rule is an inset shadow so the
+   selected underline can cover it without escaping the scroll container. */
+.filter-tabs { display: flex; justify-content: space-between; gap: 24px; padding: 0 6px; overflow-x: auto; scrollbar-width: none; box-shadow: inset 0 -1px var(--line); }
+.filter-group { display: flex; flex: none; }
+.filter-tab { position: relative; display: inline-flex; align-items: center; gap: 7px; min-height: 42px; padding: 0 10px; border: 0; background: none; color: var(--muted); font-size: 13px; white-space: nowrap; cursor: pointer; }
+.filter-tab:hover { color: var(--fg); }
+.filter-tab .count { min-width: 20px; padding: 0 6px; border-radius: 9px; background: var(--hover); font-size: 11.5px; font-weight: 500; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.filter-tab[aria-pressed="true"] { color: var(--fg); font-weight: 600; }
+.filter-tab[aria-pressed="true"]::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; border-radius: 2px 2px 0 0; background: var(--fg); }
+.filter-tab[aria-pressed="true"] .count { background: var(--pressed); color: var(--fg); }
 
 .spinner { display: inline-block; width: 11px; height: 11px; border: 2px solid var(--line-strong); border-top-color: var(--fg); border-radius: 50%; animation: spin .9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -173,7 +183,7 @@ main.page { padding-bottom: 8px; }
 
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; margin: 20px 0 12px; }
 .toolbar-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.search input { width: 190px; min-height: 32px; }
+.search input { width: 240px; min-height: 32px; }
 .sort-select { display: none; }
 .sort-select select { min-height: 32px; }
 
@@ -197,7 +207,7 @@ main.page { padding-bottom: 8px; }
 .c-checked { grid-area: check; min-width: 0; text-align: right; font-size: 13px; }
 
 .table { border: 1px solid var(--line-strong); border-radius: 4px; background: var(--surface); }
-.table-head { position: sticky; top: 0; z-index: 3; min-height: 36px; border-bottom: 1px solid var(--line-strong); border-radius: 4px 4px 0 0; background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 550; }
+.table-head { position: sticky; top: 0; z-index: 3; min-height: 36px; border-bottom: 1px solid var(--line-strong); background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 550; }
 .table-head .c-checked { display: flex; justify-content: flex-end; }
 .head-label { letter-spacing: .02em; }
 .sort { display: inline-flex; align-items: center; gap: 4px; padding: 4px 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
@@ -286,7 +296,7 @@ main.page { padding-bottom: 8px; }
 /* -------------------------------------------------------------- tooltip */
 .tooltip { position: fixed; z-index: 60; width: 300px; max-width: calc(100vw - 16px); padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--surface); box-shadow: var(--shadow); font-size: 13px; pointer-events: none; }
 .tip-time { color: var(--muted); font-size: 12px; }
-.tip-state { margin: 6px 0 8px; }
+.tip-state { display: flex; align-items: center; gap: 10px; margin: 6px 0 8px; }
 .tip-facts > div { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
 .tip-facts dt { color: var(--muted); }
 .tip-facts dd { text-align: right; overflow-wrap: anywhere; }
@@ -321,14 +331,13 @@ dialog.drawer > form { display: flex; flex-direction: column; min-height: 0; hei
 .tabs [role="tab"][aria-selected="true"] { color: var(--fg); border-bottom-color: var(--fg); }
 .tabs [role="tab"]:disabled { opacity: .4; cursor: default; }
 
-.check-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.check-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .check-head p { margin-top: 6px; }
 .pager { display: flex; gap: 2px; }
 .run-head { display: flex; align-items: center; gap: 10px; }
 .run-head .pager { margin-left: auto; }
 .icon-button.small { width: 28px; height: 28px; font-size: 18px; line-height: 1; }
 .icon-button:disabled { opacity: .35; cursor: default; }
-.verdict-text { margin-top: 14px; padding: 12px 14px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13.5px; }
 .panel { margin-top: 22px; }
 .panel h3, .run-details summary { margin-bottom: 8px; color: var(--muted); font-size: 11.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
 .candidates li { padding: 6px 0; }
@@ -361,6 +370,11 @@ dialog.drawer > form { display: flex; flex-direction: column; min-height: 0; hei
 .a-unavailable, .a-unknown { background-color: var(--none); }
 .a-empty { background-color: var(--empty); }
 .panel .time-axis { margin: 4px 0 8px; color: var(--muted); }
+/* Overview: both readings of the same periods, on one time axis. */
+.strips { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px 12px; }
+.strip-label { color: var(--muted); font-size: 12px; }
+.strips .bars { height: 22px; margin: 0; }
+.strips .time-axis { margin-top: -2px; }
 .history-entry { display: grid; grid-template-columns: 64px 150px minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; padding: 7px 10px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; font-size: 13px; cursor: pointer; }
 .history-entry:hover { background: var(--surface-2); }
 .history-entry[aria-current="true"] { background: var(--hover); box-shadow: inset 2px 0 var(--fg); }
@@ -501,9 +515,18 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
   .topbar-inner { gap: 12px; }
   .topbar nav a:not([aria-current]) { font-size: 13px; }
   .live #live-text { display: none; }
-  .toolbar-controls { width: 100%; }
-  .chips { flex-wrap: nowrap; width: 100%; overflow-x: auto; scrollbar-width: none; }
-  .chip { flex: none; }
+  /* Controls pack into two even rows: what to show and when, then how to group and sort. */
+  .toolbar-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; }
+  .toolbar-controls .segmented { display: flex; }
+  .toolbar-controls .segmented button { flex: 1; }
+  .seg-view { order: 1; }
+  .seg-window { order: 2; }
+  .seg-group { order: 3; }
+  .sort-select { order: 4; }
+  .sort-select select { width: 100%; min-height: 34px; }
+  .c-speed .speed-label { width: auto; margin-right: 6px; }
+  /* The tabs scroll sideways here; fading the edge says there are more. */
+  .filter-tabs { justify-content: flex-start; mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); }
   .search { flex: 1 1 100%; }
   .search input { width: 100%; }
   .sort-select { display: block; }
@@ -545,7 +568,7 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
 }
 
 @media (pointer: coarse) {
-  .button, .segmented button, .chip, input, select { min-height: 40px; }
+  .button, .segmented button, .filter-tab, input, select { min-height: 40px; }
   input, select { font-size: 16px; }
   .icon-button { width: 40px; height: 40px; }
   .tooltip { display: none !important; }
@@ -556,7 +579,8 @@ dialog.confirm p { color: var(--muted); font-size: 13.5px; }
 }
 
 @media (forced-colors: active) {
-  .bar, .swatch, .dot, .badge, .chip { border: 1px solid CanvasText; forced-color-adjust: none; }
+  .bar, .swatch, .dot, .badge { border: 1px solid CanvasText; forced-color-adjust: none; }
+  .filter-tab[aria-pressed="true"] { text-decoration: underline 2px; text-underline-offset: 6px; }
 }
 
 

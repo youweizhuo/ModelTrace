@@ -24,16 +24,19 @@
   <div id="notice" class="notice" role="status" hidden></div>
 
   <div class="toolbar">
-    <div id="filters" class="chips" role="group" aria-label="Filter by state"></div>
+    <label class="search"><span class="visually-hidden">Search monitors</span>
+      <input id="search" type="search" placeholder="Search…  /" autocomplete="off" spellcheck="false"></label>
     <div class="toolbar-controls">
-      <label class="search"><span class="visually-hidden">Filter monitors</span>
-        <input id="search" type="search" placeholder="Filter…  /" autocomplete="off" spellcheck="false"></label>
-      <div class="segmented" role="group" aria-label="Group by">
+      <div class="segmented seg-view" role="group" aria-label="Show">
+        <button type="button" data-view="consistency">Consistency</button>
+        <button type="button" data-view="availability">Availability</button>
+      </div>
+      <div class="segmented seg-group" role="group" aria-label="Group by">
         <button type="button" data-group="provider">Provider</button>
         <button type="button" data-group="model">Model</button>
         <button type="button" data-group="none">None</button>
       </div>
-      <div class="segmented" role="group" aria-label="History period">
+      <div class="segmented seg-window" role="group" aria-label="History period">
         <button type="button" data-window="24h">24h</button>
         <button type="button" data-window="7d">7d</button>
         <button type="button" data-window="30d">30d</button>
@@ -51,26 +54,34 @@
   <div id="error" class="banner-error" role="alert" hidden></div>
 
   <section class="table" aria-label="Monitors">
+    <div id="filters" class="filter-tabs" role="group" aria-label="Filter by state"></div>
     <div class="table-head" id="table-head"></div>
     <div id="monitors" tabindex="-1"><div class="empty">Loading monitors…</div></div>
   </section>
 </main>
 
 <footer class="page footer">
-  <div class="legend" aria-label="History legend">
+  <div class="legend" data-legend="consistency" aria-label="History legend">
     <span><i class="swatch s-consistent"></i>Consistent</span>
     <span><i class="swatch s-mismatch_signal"></i>Mismatch</span>
     <span><i class="swatch s-inconclusive"></i>Inconclusive</span>
     <span><i class="swatch s-not_in_library"></i>Not in library</span>
     <span><i class="swatch s-unknown"></i>No result</span>
-    <span><i class="swatch s-unknown outage"></i>Unavailable</span>
+    <span><i class="swatch s-unknown outage"></i>No usable answer</span>
     <span><i class="swatch s-empty"></i>No check</span>
     <span><i class="swatch s-consistent version-mark"></i>Checker changed</span>
+  </div>
+  <div class="legend" data-legend="availability" aria-label="Availability legend" hidden>
+    <span><i class="swatch a-available"></i>Every probe usable</span>
+    <span><i class="swatch a-partial"></i>Some probes failed or unusable</span>
+    <span><i class="swatch a-unavailable outage"></i>No usable answer</span>
+    <span><i class="swatch a-unknown"></i>Not measured</span>
+    <span><i class="swatch a-empty"></i>No check</span>
   </div>
   <details class="about">
     <summary>About these checks</summary>
     <div class="about-content">
-      <p>Each history bar shows the latest completed check in its period. Its colour is the identity assessment. Hatching means the API was unavailable, so no fingerprint could be taken. A tick above a bar marks a checker version change.</p>
+      <p>Each history bar sums up every check in its period. It is consistent only when consistent checks are a majority and none is a mismatch. A mismatch outvoted by consistent checks makes it inconclusive; otherwise any mismatch shows as a mismatch. Hatching means no probe got a usable answer, so no fingerprint could be taken. The availability view instead colours each period by all of its probes: a failed request or an answer too short to fingerprint counts against availability. A tick above a bar marks a checker version change.</p>
       <p>Fingerprints compare responses against reference models. They do not authenticate a provider's backend, and candidate weights are relative within the reference library. Availability counts successful probes from this machine, not continuous uptime.</p>
     </div>
   </details>

@@ -144,11 +144,14 @@ completed result rather than replacing it. Rows can be filtered by state or text
 and sorted by severity, name or last check. A banner appears only when the worker
 is offline or the checker cannot load.
 
-Each history bar takes the colour of the identity assessment from the latest
-completed check in its period: teal for consistent, red for a mismatch signal,
-blue for inconclusive, amber for a model outside the reference library, and gray
-for no result. **Hatching** marks a period whose latest check found the API
-unavailable, so an outage is never confused with a mismatch. Empty periods are
+Each history bar sums up every check in its period: teal for consistent, red for
+a mismatch signal, blue for inconclusive, amber for a model outside the reference
+library, and gray for no result. Consistent needs a strict majority of consistent
+checks and no mismatch; a mismatch outvoted by consistent checks reads
+inconclusive, and otherwise any mismatch reads as a mismatch, so ties take the
+worse result. Checks without a verdict don't vote. **Hatching** marks a period
+where no check got a usable answer, so an outage is never confused with a
+mismatch. The availability view colours each period by all of its probes instead. Empty periods are
 pale gray, and a tick above a bar marks a checker version change. The colours are
 validated for colour-vision deficiency; every state also has a text label.
 
@@ -196,7 +199,7 @@ continuous uptime. A probe is usable when it answered and the fingerprint parser
 accepted the answer; a refusal or truncated list counts against availability like
 a failed request. Credential errors, rate/quota errors, upstream errors, timeouts
 and unusable answers remain distinguishable. Local runner failures are monitoring
-gaps.
+gaps. The status page switches between the consistency and availability views.
 Daily budgets count started CLI probes, including failures;
 the default is 120 probes per monitor per UTC day. Hidden behavior inside an
 upstream gateway is outside this request budget. Durations include CLI overhead;
