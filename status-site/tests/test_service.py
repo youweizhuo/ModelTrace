@@ -7,7 +7,7 @@ from dataclasses import replace
 
 import pytest
 
-from modeltrace_status.web import create_app, period_identity, score_weight, snapshot
+from modeltrace_status.web import create_app, period_identity, period_verdicts, score_weight, snapshot
 from modeltrace_status.worker import Worker
 
 
@@ -285,6 +285,20 @@ def test_pausing_during_a_probe_stops_remaining_samples(settings, store):
 def test_period_colour_is_a_vote_over_every_check(identities, expected):
     runs = [{"identity": i, "kind": "scheduled", "availability": "available"} for i in identities]
     assert period_identity(runs) == expected
+
+
+@pytest.mark.parametrize("identities, expected", [
+    (["consistent", "consistent", "down", "down", "down"], "unavailable"),  # 503s outvote the passes
+    (["consistent", "consistent", "consistent", "down"], "consistent"),
+    (["consistent", "down"], "unavailable"),  # ties take the worse result
+    (["inconclusive", "inconclusive", "down"], "inconclusive"),
+    (["consistent", "down", "mismatch_signal"], "mismatch_signal"),
+])
+def test_checks_with_no_usable_answer_vote_against_consistent(identities, expected):
+    runs = [{"identity": "unknown", "kind": "scheduled", "availability": "unavailable"} if i == "down"
+            else {"identity": i, "kind": "scheduled", "availability": "available"} for i in identities]
+    assert period_identity(runs) == expected
+    assert period_verdicts(runs).get("unavailable", 0) == identities.count("down")
 
 
 def test_period_without_a_verdict_shows_no_usable_answer_or_no_result():

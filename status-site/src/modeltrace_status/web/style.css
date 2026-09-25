@@ -367,6 +367,7 @@ dialog.drawer > form { display: flex; flex-direction: column; min-height: 0; hei
 .bars.static .bar { cursor: default; filter: none; }
 .a-available { background-color: var(--good); }
 .a-partial { background-color: var(--warn); }
+.a-degraded { background-color: var(--bad); }
 .a-unavailable, .a-unknown { background-color: var(--none); }
 .a-empty { background-color: var(--empty); }
 .panel .time-axis { margin: 4px 0 8px; color: var(--muted); }

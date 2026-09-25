@@ -325,15 +325,18 @@ function barState(b, view = ui.view) {
   if (view === 'availability') {
     const state = b.latest_id ? b.availability || 'unknown' : 'empty';
     const probes = b.usable + b.failed;
-    return {cls: `a-${state}${state === 'unavailable' ? ' outage' : ''}`,
+    // Partial is graded like the availability figure, but never reads as green.
+    const shade = state === 'partial' && availabilityTone(b.usable / probes) === 'bad' ? 'degraded' : state;
+    return {cls: `a-${shade}${state === 'unavailable' ? ' outage' : ''}`,
       label: b.latest_id ? `${stateLabel(state)}${probes ? `, ${b.usable} of ${probes} probes usable` : ''}` : 'no check'};
   }
   // Older servers only sent the latest result.
   const state = b.latest_id ? b.identity ?? b.latest_identity ?? 'unknown' : 'empty';
-  const outage = state === 'unavailable' || (b.identity === undefined && b.latest_availability === 'unavailable');
+  // Any check with no usable answer hatches the period, even one a majority calls consistent.
+  const outage = state === 'unavailable' || b.verdicts?.unavailable > 0 || (b.identity === undefined && b.latest_availability === 'unavailable');
   const votes = b.runs > 1 ? verdictText(b) : '';
   return {cls: `s-${state === 'unavailable' ? 'unknown' : state}${outage ? ' outage' : ''}`,
-    label: b.latest_id ? `${stateLabel(state)}${outage && state !== 'unavailable' ? ', no usable answer' : ''}${votes ? ` (${votes})` : ''}` : 'no check'};
+    label: b.latest_id ? `${stateLabel(state)}${outage && !votes && state !== 'unavailable' ? ', no usable answer' : ''}${votes ? ` (${votes})` : ''}` : 'no check'};
 }
 
 function bars(v) {

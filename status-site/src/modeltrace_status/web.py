@@ -123,30 +123,39 @@ BUCKET_CHECKS = 6  # most recent checks kept per history period
 MISMATCHES = {"mismatch_signal", "repeated_mismatch"}
 
 
+def outage(run):
+    """A check where no probe got a usable answer: no verdict, but not a gap either."""
+    return run["identity"] == "unknown" and run["availability"] == "unavailable"
+
+
 def period_verdicts(runs):
     """How a period's checks voted. Stored confirmation re-runs would double-count mismatches."""
-    identities = Counter(run["identity"] for run in runs if run["kind"] != "confirmation")
+    runs = [run for run in runs if run["kind"] != "confirmation"]
+    identities = Counter(run["identity"] for run in runs)
     votes = {"consistent": identities["consistent"], "mismatch": sum(identities[k] for k in MISMATCHES),
-             "inconclusive": identities["inconclusive"]}
+             "inconclusive": identities["inconclusive"], "unavailable": sum(map(outage, runs))}
     return {key: n for key, n in votes.items() if n}
 
 
 def period_identity(runs):
     """One colour for every check in a period. Consistent needs a strict majority and
-    no mismatch at all. A mismatch outvoted by consistent checks makes the period
-    inconclusive; otherwise it shows, since it clears far stricter thresholds than an
-    inconclusive result. Ties read as the worse result."""
+    no mismatch at all; a check with no usable answer votes against it. A mismatch
+    outvoted by consistent checks makes the period inconclusive; otherwise it shows,
+    since it clears far stricter thresholds than an inconclusive result. Ties read as
+    the worse result."""
     if not runs:
         return None
     votes = period_verdicts(runs)
-    good, bad, unsure = votes.get("consistent", 0), votes.get("mismatch", 0), votes.get("inconclusive", 0)
-    if good + bad + unsure:
-        if good > bad + unsure:
+    good, bad, unsure, down = (votes.get(k, 0) for k in ("consistent", "mismatch", "inconclusive", "unavailable"))
+    if good + bad + unsure + down:
+        if good > bad + unsure + down:
             return "inconclusive" if bad else "consistent"
-        return "mismatch_signal" if bad else "inconclusive"
+        if bad:
+            return "mismatch_signal"
+        return "unavailable" if down >= unsure else "inconclusive"
     if any(run["identity"] == "not_in_library" for run in runs):
         return "not_in_library"
-    return "unavailable" if any(run["availability"] == "unavailable" for run in runs) else "unknown"
+    return "unknown"
 
 
 def snapshot(store, settings, window="24h", now=None, utc_offset=0):
