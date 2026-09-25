@@ -575,7 +575,7 @@ function explanation(run) {
       return `${top?.model} ranked first with ${percent(top?.weight)}; the expected model ${expected} received ${percent(run.expected_weight)}.`;
     case 'inconclusive':
       return run.valid_samples < planned
-        ? `Only ${run.valid_samples} of ${planned} samples were valid${run.attempts.some(a => a.replaces != null) ? ', even after a replacement probe' : ''}; ${planned} are required for an assessment.`
+        ? `Only ${run.valid_samples} of ${planned} samples were valid; ${planned} are required for an assessment.`
         : 'The scores did not meet the thresholds for a consistent or mismatch result.';
     case 'not_in_library': return `${expected} isn’t in the reference library, so its identity can’t be assessed. The closest reference model is shown for context.`;
     default:
@@ -660,12 +660,12 @@ function probes(run) {
   return run.attempts.map((a, i) => {
     const index = a.outcome === 'responded' ? responded++ : null;
     const sample = index === null ? null : run.diagnostics?.find(d => d.index === index);
-    const replacement = run.attempts.findIndex(other => other.replaces === i);
-    return probe(a, i, sample, replacement);
+    return probe(a, i, sample);
   });
 }
 
-function probe(a, i, sample, replacement) {
+function probe(a, i, sample) {
+  // `replaces` only appears on stored runs from the removed replacement probes.
   const ok = a.outcome === 'responded';
   const rejected = ok && sample && sample.accepted === false;
   const d = a.diagnostic;
@@ -673,7 +673,7 @@ function probe(a, i, sample, replacement) {
     <div class="probe-line"><span class="probe-icon" aria-hidden="true">${rejected ? '!' : ok ? '✓' : '✕'}</span>
       <strong>Probe ${i + 1}</strong>${a.replaces != null ? html`<span class="tag">replaces probe ${a.replaces + 1}</span>` : ''}<span>${rejected ? 'Not usable as a sample' : ok ? 'Valid sample' : d?.title ?? stateLabel(a.outcome)}</span>
       <span class="muted num">${ok && sample?.accepted ? `${sample.parsed_numbers} numbers · ` : ''}${a.http_status ? `HTTP ${a.http_status} · ` : ''}${speedText(a) ? `${speedText(a)} · ` : ''}${seconds(a.duration_ms)}</span></div>
-    ${rejected ? html`<p>The response contained ${sample.parsed_numbers} numbers; the fingerprint parser needs at least ${sample.minimum_numbers}, so it was excluded from scoring.</p><p class="muted">The API worked. ${replacement >= 0 ? `Probe ${replacement + 1} was sent with a fresh challenge to replace it.` : 'No replacement was sent (the per-check replacement limit or daily budget was reached).'}</p>` : ''}
+    ${rejected ? html`<p>The response contained ${sample.parsed_numbers} numbers; the fingerprint parser needs at least ${sample.minimum_numbers}, so it was excluded from scoring.</p><p class="muted">The API worked; the answer just wasn’t usable as a fingerprint.</p>` : ''}
     ${d && !ok ? html`<p>${d.detail}</p><p class="muted">${d.action}</p><p class="small muted mono">${d.code} · ${SOURCES[d.source] ?? d.source}</p>` : ''}
   </li>`;
 }

@@ -125,11 +125,9 @@ outside the bank is explicitly marked as unsupported.
 
 A response that arrives but is too short to score (upstream requires
 `max(80, ⌈0.55 × requested count⌉)` parsed numbers; refusals and truncated answers
-fail this) is not an availability failure. By default the worker replaces one such
-response per batch with a fresh challenge (`sample_retries`, 0–3). The rejected
-response is still recorded and shown in the check's evidence, and replacements
-count against the daily budget. If the budget has no room, the batch is assessed
-without the replacement. Failed requests are never replaced.
+fail this) is not an availability failure. It is recorded and shown in the
+check's evidence, and the batch is assessed on the samples it has. Every check
+sends exactly three probes: nothing is retried or replaced.
 
 A mismatch triggers no extra checks; the next scheduled check is the follow-up.
 Thresholds are inherited heuristics, not newly calibrated accuracy guarantees.
@@ -197,7 +195,7 @@ Availability is **successful Codex probes / probes with observed provider
 outcomes**, not continuous uptime. Credential errors, rate/quota errors, upstream
 errors and timeouts remain distinguishable. Local runner failures are monitoring
 gaps. Invalid fingerprint samples can still have successful API responses.
-Daily budgets count started CLI probes, including failures and replacements;
+Daily budgets count started CLI probes, including failures;
 the default is 120 probes per monitor per UTC day. Hidden behavior inside an
 upstream gateway is outside this request budget. Durations include CLI overhead;
 token counts are saved when supplied. TTFT/TBT remain null because the CLI event

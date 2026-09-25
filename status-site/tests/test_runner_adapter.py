@@ -62,9 +62,6 @@ def test_current_upstream_contract_and_reference_sample(settings):
     assert result["valid_samples"] == 3
     assert abs(sum(r["weight"] for r in result["candidates"]) - 1) < 1e-8
     assert adapter.assess([], "gpt-6-astra")["identity"] == "unknown"
-    assert adapter.sample_valid({"text": row["text"], "expected_count": 300})
-    assert not adapter.sample_valid({"text": ", ".join(["7"] * 65), "expected_count": 320})
-    assert not adapter.sample_valid({"text": "I can't help with that.", "expected_count": 300})
     unknown = adapter.assess([{"text": row["text"], "expected_count": 300}] * 3, "not-a-reference-model")
     assert unknown["identity"] == "not_in_library"
 

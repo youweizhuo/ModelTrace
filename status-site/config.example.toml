@@ -8,7 +8,6 @@ port = 7861
 concurrency = 2
 timeout = 240
 daily_budget = 120
-sample_retries = 1
 retention_days = 90
 evidence_days = 30
 

@@ -57,14 +57,6 @@ class UpstreamAdapter:
             raise ValueError("Upstream challenge schema changed")
         return plan
 
-    def sample_valid(self, output):
-        """Whether upstream would accept one response as a sample (its rule, not a copy)."""
-        try:
-            result = self.module.analyze_outputs([output], self.bank)
-        except ValueError:
-            return False
-        return bool(result["diagnostics"][0]["accepted"])
-
     def assess(self, outputs, expected):
         if not outputs:
             return {"identity": "unknown", "candidates": [], "valid_samples": 0, "diagnostics": []}

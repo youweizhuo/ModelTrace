@@ -54,29 +54,22 @@ class Worker:
 
     def batch(self, monitor, credential, kind="scheduled"):
         adapter = self.adapter
-        provenance = (adapter.provenance if adapter else {}) | {"codex_version": self.runner.version,
-                                                                 "sample_retries": self.settings.sample_retries}
+        provenance = (adapter.provenance if adapter else {}) | {"codex_version": self.runner.version}
         run = self.store.create_run(monitor, kind, adapter.version if adapter else "unavailable", provenance)
         evidence, outputs = [], []
         try:
             if not adapter:
                 run.update(state="checker_error", reason="upstream_incompatible")
                 return run
+            # Exactly the planned probes: an unusable answer is scored as it is, never retried.
             plan = adapter.plan()
-            run["planned_samples"] = run["planned_probes"] = len(plan)
-            queue = [(challenge, None) for challenge in plan]
-            retries = self.settings.sample_retries
-            while queue:
-                challenge, replaces = queue.pop(0)
+            run["planned_samples"] = len(plan)
+            for challenge in plan:
                 if self.stop.is_set() or not self.current(monitor):
                     run.update(state="interrupted", reason="monitor_changed_or_paused")
                     break
                 attempt_id = self.store.reserve_attempt(monitor.id, run["id"], self.settings.daily_budget)
                 if not attempt_id:
-                    if replaces is not None:
-                        # Assess the planned samples rather than discarding them.
-                        run["planned_probes"] -= 1
-                        break
                     run.update(state="budget_exhausted", reason="daily_attempt_limit")
                     break
                 started_at = time.time()
@@ -87,20 +80,11 @@ class Worker:
                 self.store.finish_attempt(attempt_id, outcome["outcome"])
                 attempt = {k: outcome.get(k) for k in ("outcome", "duration_ms", "usage", "ttft_ms", "output_tps", "http_status", "diagnostic")}
                 attempt.update(started_at=started_at, finished_at=time.time())
-                if replaces is not None:
-                    attempt["replaces"] = replaces
                 run["attempts"].append(attempt)
                 evidence.append({"challenge": challenge, "text": outcome.get("text", ""), "outcome": outcome["outcome"]})
                 if outcome["outcome"] == "responded":
-                    output = {"text": outcome["text"], "expected_count": challenge["expected_count"]}
-                    # Every response is still scored, so rejected samples stay visible in diagnostics.
-                    outputs.append(output)
-                    if retries and not adapter.sample_valid(output):
-                        # A short or truncated answer says nothing about availability;
-                        # replace it with a fresh challenge so the batch can still reach three samples.
-                        retries -= 1
-                        run["planned_probes"] += 1
-                        queue.append((adapter.plan()[0], len(run["attempts"]) - 1))
+                    # Every response is scored, so rejected samples stay visible in diagnostics.
+                    outputs.append({"text": outcome["text"], "expected_count": challenge["expected_count"]})
                 self.store.save_run(run, evidence)
             run.update(adapter.assess(outputs, monitor.expected_model))
             run["availability"] = availability(run["attempts"])

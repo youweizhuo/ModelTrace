@@ -96,7 +96,7 @@ def management_activity(store, now=None):
         monitors[monitor.id] = {
             "state": state, "enabled": runtime["enabled"],
             "completed_samples": len(run["attempts"]) if run else 0,
-            "planned_samples": run.get("planned_probes", run.get("planned_samples", 3)) if run else 3,
+            "planned_samples": run.get("planned_samples", 3) if run else 3,
             "run_id": run["id"] if run else None, "kind": run["kind"] if run else None,
             "run_state": run["state"] if run else None,
             "availability": run["availability"] if run else None,
@@ -180,7 +180,7 @@ def snapshot(store, settings, window="24h", now=None, utc_offset=0):
             "latest_completed": done,
             "active": {"id": active["id"], "kind": active["kind"], "started_at": active["started_at"],
                        "completed_samples": len(active["attempts"]),
-                       "planned_samples": active.get("planned_probes", active.get("planned_samples", 3))} if active else None,
+                       "planned_samples": active.get("planned_samples", 3)} if active else None,
             "stale": stale, "configuration_changed": changed, "history": buckets,
             "score": {"value": sum(weights) / len(weights) if weights else None, "checks": len(weights)},
             "metrics": {"responded": good, "failed": failed, "unknown": sum(outcomes.values()) - good - failed,

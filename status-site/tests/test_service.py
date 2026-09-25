@@ -19,11 +19,8 @@ class FakeAdapter:
     def plan(self):
         return [{"prompt": "fixture", "expected_count": 300} for _ in range(3)]
 
-    def sample_valid(self, output):
-        return output["text"] != "short"
-
     def assess(self, outputs, expected):
-        outputs = [o for o in outputs if self.sample_valid(o)]
+        outputs = [o for o in outputs if o["text"] != "short"]
         mismatch = len(outputs) == 3 and all(o["text"] == "mismatch" for o in outputs)
         return {"identity": "mismatch_signal" if mismatch else "consistent" if len(outputs) == 3 else "inconclusive" if outputs else "unknown",
                 "candidates": [{"model": "gpt-6-sol" if mismatch else expected, "weight": .9}] if outputs else [], "valid_samples": len(outputs),
@@ -448,32 +445,14 @@ def test_pages_only_reference_served_assets(settings, store):
     assert client.get("/assets/../web.py").status_code == 404
 
 
-def test_short_response_is_replaced_by_a_fresh_probe(settings, store):
-    runner = FakeRunner(["short", "match", "match", "match"])
+def test_short_response_is_scored_without_a_retry(settings, store):
+    runner = FakeRunner(["short", "match", "match"])
     Worker(settings, store, runner, FakeAdapter()).check(*run_monitor(store))
     run = store.history("one")[0]
-    assert runner.count == 4
-    assert run["identity"] == "consistent" and run["valid_samples"] == 3
-    assert run["availability"] == "available"
-    assert [a.get("replaces") for a in run["attempts"]] == [None, None, None, 0]
-    assert run["planned_samples"] == 3 and run["planned_probes"] == 4
-    assert run["provenance"]["sample_retries"] == 1
-
-
-def test_sample_replacements_are_bounded_by_setting_and_budget(settings, store):
-    runner = FakeRunner(["short", "short", "match", "match"])
-    Worker(settings, store, runner, FakeAdapter()).check(*run_monitor(store))
-    assert runner.count == 4  # only one replacement per batch
-    assert store.history("one")[0]["identity"] == "inconclusive"
-    runner = FakeRunner(["short", "match", "match"])
-    Worker(replace(settings, sample_retries=0), store, runner, FakeAdapter()).check(*run_monitor(store))
     assert runner.count == 3
-    budget = replace(settings, daily_budget=store_attempts(store) + 3)
-    runner = FakeRunner(["short", "match", "match"])
-    Worker(budget, store, runner, FakeAdapter()).check(*run_monitor(store))
-    latest = store.history("one")[0]
-    assert runner.count == 3 and latest["state"] == "completed" and latest["planned_probes"] == 3
-    assert latest["identity"] == "inconclusive"
+    assert run["identity"] == "inconclusive" and run["valid_samples"] == 2
+    assert run["planned_samples"] == 3 and "planned_probes" not in run
+    assert run["availability"] == "available"
 
 
 def store_attempts(store):
